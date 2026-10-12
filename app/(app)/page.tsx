@@ -18,7 +18,7 @@ export default async function Today() {
         <Card className="stat"><b><CountUp value={t.rejected} /></b><span>startups skipped (did not fit)</span></Card>
         <Card className="stat"><b><CountUp value={t.articlesRead} /></b><span>articles read from {t.sources} sources</span></Card>
       </div>
-      <Link className="btn primary" href="/drafts">Let’s get started</Link>
+      <Link className="btn primary go" href="/drafts">Let’s get started <span className="arr" aria-hidden="true">→</span></Link>
       <div className="fine">Nothing is ever sent without you. <Link href="/sources">See where the articles came from</Link></div>
       <TelegramNote className="fine" />
       <i className="orb o1" aria-hidden="true" /><i className="orb o2" aria-hidden="true" /><i className="orb o3" aria-hidden="true" />
