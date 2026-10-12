@@ -188,6 +188,26 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
     c.filtered = toFilter.length;
     await step("filter", `${c.fetched} items → ${candidates.length} look like funding news in the last ${rubric.lookbackHours}h`);
 
+    // Manual "Run now" with nothing new: re-check a few recent articles that are safe to read again, so the run shows real work.
+    // Safe = rejected startups and non-announcements (never drafted ones), so no draft can be duplicated. The daily cron never does this.
+    let rescanned = 0;
+    if (opts.trigger === "manual" && candidates.length === 0) {
+      const windowStart = new Date(now.getTime() - Math.max(rubric.lookbackHours, 168) * HOUR).toISOString();
+      const { data: rej } = await db.from("startups").select("id").eq("status", "rejected").limit(500);
+      const ids = (rej ?? []).map((x: Row) => x.id);
+      const { data: again } = await db
+        .from("articles")
+        .select("*")
+        .eq("status", "processed")
+        .gte("published_at", windowStart)
+        .or(ids.length ? `startup_id.is.null,startup_id.in.(${ids.join(",")})` : "startup_id.is.null")
+        .order("published_at", { ascending: false })
+        .limit(8);
+      for (const a of again ?? []) candidates.push(a);
+      rescanned = again?.length ?? 0;
+      c.rescanned = rescanned;
+    }
+
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;
     c.cap_hit = candidates.length > capped.length;
@@ -198,7 +218,9 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
       groups.set(key, [...(groups.get(key) ?? []), a]);
     }
     c.groups = groups.size;
-    await step("memory", `${candidates.length} unseen candidates → ${groups.size} startups to read${c.cap_hit ? ` (cap ${rubric.maxArticlesPerRun}, rest next run)` : ""}`);
+    await step("memory", rescanned
+      ? `nothing new since the last run (${c.fetched} articles already seen), so re-checking the ${rescanned} most recent safe ones (rejected or not funding news). Drafted startups are skipped, so no duplicates`
+      : `${candidates.length} unseen candidates → ${groups.size} startups to read${c.cap_hit ? ` (cap ${rubric.maxArticlesPerRun}, rest next run)` : ""}`);
 
     // ---- Gemini read + score, code decides
     await step("read", "reading articles with Gemini", "active");
