@@ -6,6 +6,7 @@ import { decide } from "./decide";
 import { writeDraft } from "./draft";
 import { readAndScore, type ArticleInput, type Extraction } from "./extract";
 import { fetchFeed, type FeedItem, type FeedRow } from "./feeds";
+import { isGoogleNewsLink, resolveGoogleNewsUrl } from "./googlenews";
 import { Budget, geminiSearch, setGeminiDeadline } from "./gemini";
 import { createGmailDraft } from "./gmail";
 import { acquireLock, extendLock, LEASE_SECONDS, releaseLock } from "./lock";
@@ -165,6 +166,15 @@ export async function runStage(db: SupabaseClient, runId: number, stage: Stage):
           if (stage === "ingest") addError(`feed ${f.name}: ${msg(e)}`);
         }
       });
+      // Google search results link to a Google redirect page: swap in the publisher's real address (and drop what cannot be resolved)
+      const viaGoogle = [...m.values()].filter((it) => isGoogleNewsLink(it.url)).slice(0, 90);
+      if (viaGoogle.length) {
+        await pool(viaGoogle, 6, async (it) => {
+          m.delete(it.url);
+          const real = await resolveGoogleNewsUrl(it.url);
+          if (real && !m.has(real)) m.set(real, { ...it, url: real });
+        });
+      }
       return m;
     })());
 
