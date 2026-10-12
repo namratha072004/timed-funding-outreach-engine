@@ -2,18 +2,22 @@
 
 Every morning this app finds startups that announced a **seed or pre-seed** round in the last 24 hours, checks them against an editable thesis, finds a contact email, and saves one personalised **draft** email per fitting startup into Rohit's Gmail Drafts folder. A dashboard shows the drafts for review. **It never sends email.**
 
+> The dashboard is publicly viewable and shows draft emails and contact addresses taken from public news, Hunter and company contact pages. Only actions that change data (Run now, Overrule, Save changes, moving a draft) ask for the access code.
+
 All AI is **Gemini Flash only**. Gemini reads articles and marks criteria; **code** adds up the score and decides pass or reject.
 
 ## How it works
 
 ```
-cron / Run now -> run lock -> RSS feeds -> keyword filter (code) -> memory check
+GitHub Actions / Run now -> run lock -> RSS feeds -> memory check
   -> Gemini: read + mark each criterion (quote required) -> code: gates + score + decide
   -> (pass only) Hunter email, else contact page -> Gemini: write draft -> code: check the draft rules
-  -> save to Supabase + Gmail draft -> dashboard -> Rohit reviews, edits, sends from Gmail
+  -> save to Supabase + Gmail draft -> Telegram reminder to Rohit (new drafts only)
+  -> dashboard -> Rohit reviews, edits, sends from Gmail
 ```
 
 - **Trigger**: a GitHub Actions workflow (`.github/workflows/pipeline.yml`) calls `GET /api/run` with `Authorization: Bearer $CRON_SECRET` **every 3 hours** (Vercel Hobby only allows a daily cron, so Vercel Cron is not used). It needs the repo secrets `CRON_SECRET` and `APP_URL`. Scheduled runs read articles not read yet; the dashboard's **Run now** button (`POST /api/run`) reads every article in the feeds.
+- **Telegram reminder**: when a run has written at least one new draft, one Telegram message tells Rohit (startup names and a link to Drafts, never email addresses or draft text). The bot token is `TELEGRAM_BOT_TOKEN`; the chat is connected from Settings > Notifications. The Today and Drafts pages tell visitors the reminder exists and whether it is on.
 - **Run guard**: a lease lock in `run_lock` (one atomic UPDATE) lets only one run happen at a time; a second caller logs "skipped: already running". A run is a chain of stages (ingest, read, draft). Each stage is its own function invocation with its own 300 s Vercel Hobby allowance and starts the next one, so reading is not limited to what fits in 300 s.
 - **Memory**: every article (by canonical URL) and startup (by cleaned name and verified domain) is remembered. Repeats are skipped before any AI call. A Gemini error leaves the article retryable.
 - **Scoring**: yes = 1, partial = 0.5 (only where allowed), no = 0, unclear = 0. `score = sum(weight x points) / sum(active weights) x 100`. Pass needs the stage gate, the recency gate, no `reject_on_no` criterion marked "no", and `score >= pass_mark`. Every "yes" or "partial" must carry a quote that really appears in the article, or it is downgraded to "unclear".
@@ -22,11 +26,13 @@ cron / Run now -> run lock -> RSS feeds -> keyword filter (code) -> memory check
 
 ## Pages
 
-`/unlock` (access code), **Review** (`/`), **Rejected**, **Runs & health**, **Rubric**, and a draft detail page. Rejected startups never appear in Review.
+All pages are public and read-only: **Today** (`/`, welcome, no sidebar), **Drafts** (`/drafts`, tabs To review / Approved / Done), **Rejected**, **Sources** (feeds and every article with what happened to it) and **Runs & health** (with editable run limits and funding words). **Settings** and **Account** sit at the bottom left: Settings has the editable **Rubric** and **Notifications** (Telegram); Account shows who is signed in and lets you enter the access code or sign out. A top bar on every page shows the last run, a palette dropdown (Aurora is the default) and a Dark/Light toggle; both choices are remembered in cookies, and with no cookie the system theme is used.
+
+Actions that change data ask for the access code in a small dialog: Run now, Overrule, Save changes (Rubric and Run settings) and moving a draft between tabs. The code is checked on the server against `ACCESS_CODE`; the browser keeps only a hash of it in an httpOnly cookie for 12 hours. **Testing mode** (`ACCEPT_ANY_ACCESS_CODE=true`, the current setting) accepts any non-empty code and the dialog says so; set it to `false` to enforce `ACCESS_CODE`.
 
 ## Setup
 
-1. Supabase: the rubric tables already exist. Review and run `supabase/migrations/002_app_tables.sql` in the SQL editor (idempotent).
+1. Supabase: the rubric tables already exist. Run `supabase/migrations/002_app_tables.sql`, `003_rubric_version_scoring_only.sql`, `004_draft_tabs_and_et_startups.sql` and `005_app_settings.sql` in the SQL editor, in order (all idempotent).
 2. `cp .env.example .env.local` and fill it in.
 3. `npm install`
 
@@ -45,19 +51,17 @@ cron / Run now -> run lock -> RSS feeds -> keyword filter (code) -> memory check
 | `HUNTER_API_KEY` | Hunter.io |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` | Gmail OAuth, scope `gmail.compose` only |
 | `CRON_SECRET` | bearer token for the cron call |
-| `ACCESS_CODE` | the dashboard access code (used when testing mode is off) |
-| `ACCEPT_ANY_ACCESS_CODE` | `true` = testing mode, the unlock page accepts any non-empty code; `false` = enforce `ACCESS_CODE` |
+| `ACCESS_CODE` | the code that unlocks actions which change data (Run now, Overrule, Save, moving drafts) |
+| `TELEGRAM_BOT_TOKEN` | optional: token of the Telegram bot that sends the "new drafts are ready" reminder (the chat is connected from Settings > Notifications) |
+| `ACCEPT_ANY_ACCESS_CODE` | `true` = testing mode, any non-empty code unlocks; `false` = enforce `ACCESS_CODE` |
 
-## How Rohit edits the rubric (no code change)
+## How Rohit edits the settings
 
-In Supabase, edit and save:
+On the dashboard, under **Settings > Rubric** (sectors and countries are picked from lists) (pass mark, the five weights, reject-straight-away for sector and geography, sectors, countries, stages, look-back window) and **Runs & health** (articles per run, Gemini calls per run, email lookups per run, funding words). Every save is checked on the server first (weights must total 100, lists cannot be empty, caps must be in range) and needs the access code. Changes apply from the next run.
 
-- `rubric_settings`: `pass_mark`, `lookback_hours`, `allowed_stages`, `thesis_sectors`, `thesis_geographies`, `max_round_size_usd`, `hunter_lookups_per_run`, `max_articles_per_run`, `max_gemini_calls_per_run`, `funding_keywords`, `points`.
-- `rubric_criteria`: weights, questions, `reject_on_no`, `allows_partial`, `active`.
-- `outreach_settings`: `sender_name`, `accelerator_name`, `program_description`, `call_to_action`, `style_notes`. Empty values appear in drafts as `[SENDER NAME]`-style placeholders.
-- `feeds`: add, remove or deactivate news feeds.
+The same values still live in Supabase and can be edited there: `rubric_settings`, `rubric_criteria`, `outreach_settings` (sender, accelerator, program, call to action; edited in Supabase only) and `feeds`.
 
-The next run uses the new values. Each edit bumps `rubric_meta.version`; previously rejected startups are re-scored (by code, from their saved marks) when it changes.
+`rubric_meta.version` moves only when something that changes scoring changes: the pass mark, points, stages, round-size limit, sectors, countries, or any criterion (migration `003`). Editing the look-back window, run caps or funding words does not move it, so it does not trigger a re-check of earlier rejects.
 
 ## Run locally
 
@@ -76,7 +80,8 @@ npm run build && npx next start -p 3100
 | `npm run check:rubric` | loads the live rubric and prints it |
 | `npm run test:calibration` | 8 real articles, each scored twice at temperature 0; compares decisions and marks |
 | `npm run test:lock` | concurrent lock acquisition: exactly one winner |
-| `npm run test:access` | needs a running server: cron route and dashboard reject unauthenticated requests |
+| `npm run test:access` | needs a running server: pages are public, every write is refused without the code, the code check is real, invalid saves are refused |
+| `npm run test:settings` | saves today's live values back through the real save code: nothing is written and the version does not move |
 | `npm run test:e2e` | needs a running server: three live runs (168 h, 24 h, 168 h); proves no duplicate drafts; restores `lookback_hours` |
 | `npm run scan:secrets` | searches the tree and the build output for any secret value |
 
@@ -94,4 +99,4 @@ Import the GitHub repo, set the environment variables above for Production, depl
 - **Hunter free tier is 50 lookups a month**; the default cap is 2 per run, so the worst case exceeds it. The code also checks the live account quota and falls back to the contact page.
 - **Email addresses from contact pages are unverified**; they are shown, never put in Gmail's To.
 - **SSRF protection** validates every connection's resolved address and every redirect; it cannot protect against a malicious site that simply serves misleading text.
-- **A run cut off by Vercel at 300 s** shows as "did not finish"; its unprocessed work is retried next run.
+- **A stage cut off by Vercel at 300 s** is not expected (each stage stops itself at about 230 s and starts the next one). If a stage cannot start the next, the run is marked as failed and unread articles are read by the next run.

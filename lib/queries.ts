@@ -1,88 +1,225 @@
-import { serverDb } from "./supabase";
-import { lockState } from "./lock";
 import { hunterAccount } from "./contacts";
+import { keywordMatcher } from "./filter";
+import { lockState } from "./lock";
+import { articleOutcome, plainReason, primaryArticles, type Outcome } from "./outcomes";
+import { serverDb } from "./supabase";
+import { ago, median } from "./time";
 
-export const IST = "Asia/Kolkata";
-export const fmtTime = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { timeZone: IST, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : "-");
-export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: IST, hour: "2-digit", minute: "2-digit", hour12: false });
-export const hoursAgo = (iso: string | null | undefined) => {
-  if (!iso) return null;
-  const h = (Date.now() - new Date(iso).getTime()) / 3_600_000;
-  return h < 1 ? "less than an hour ago" : h < 48 ? `${Math.round(h)} hours ago` : `${Math.round(h / 24)} days ago`;
+type Row = Record<string, any>;
+type ArtRow = Row & { id: number; startup_id: number | null; published_at: string | null };
+export type Tone = "ok" | "warn" | "bad" | "neutral";
+
+export const score = (s: any): number | null => s?.score ?? s?.marks?.score_if_scored ?? null;
+
+const count = async (table: string, f?: (q: any) => any): Promise<number> => {
+  let q: any = serverDb().from(table).select("id", { count: "exact", head: true });
+  if (f) q = f(q);
+  return (await q).count ?? 0;
 };
 
-export async function sidebarCounts() {
-  const db = serverDb();
-  const [d, r] = await Promise.all([
-    db.from("drafts").select("id", { count: "exact", head: true }).in("status", ["new", "pending_gmail"]),
-    db.from("startups").select("id", { count: "exact", head: true }).eq("status", "rejected"),
-  ]);
-  return { drafts: d.count ?? 0, rejected: r.count ?? 0 };
+// ---------------------------------------------------------------------------------------------------- runs
+/** Display status of a run row. `locked` = the run lock is held, so an unfinished run is still going. */
+export function runStatus(r: Row, locked: boolean): { label: string; tone: Tone } {
+  if (r.status === "skipped") return { label: "Skipped", tone: "neutral" };
+  if (!r.finished_at) return locked ? { label: "Running", tone: "neutral" } : { label: "Failed", tone: "bad" };
+  if (r.status === "error") return { label: "Failed", tone: "bad" };
+  if ((r.counts?.errors ?? 0) > 0) return { label: "Partial", tone: "warn" };
+  return { label: "OK", tone: "ok" };
 }
 
-export async function runBanner() {
+export async function topStatus(): Promise<{ text: string; tone: Tone }> {
   const db = serverDb();
-  const [lock, { data }] = await Promise.all([lockState(db), db.from("runs").select("*").order("id", { ascending: false }).limit(1)]);
-  const last = data?.[0] ?? null;
-  // each stage renews the lock lease, so "unfinished and locked" = still running; "unfinished and the lease ran out" = the chain broke
-  const running = !!last && !last.finished_at && lock.locked;
-  const failed = !!last && !last.finished_at && !lock.locked;
-  return { lock, last, running, failed };
+  const [lock, { data }] = await Promise.all([lockState(db), db.from("runs").select("*").neq("status", "skipped").order("id", { ascending: false }).limit(1)]);
+  const r = data?.[0];
+  if (!r) return { text: "No run yet", tone: "neutral" };
+  const st = runStatus(r, lock.locked);
+  const c = r.counts ?? {};
+  return { text: `Last run ${ago(r.started_at)} · ${st.label} · ${c.startups_new ?? 0} new, ${c.drafted ?? 0} drafted`, tone: st.tone };
 }
 
-export async function reviewData() {
+const HUNTER_TTL = 5 * 60_000;
+let hunterCache: { at: number; v: { used: number; total: number } } | null = null;
+/** Hunter's own usage figure (covers lookups made outside runs); cached, because this page is public. Falls back to the per-run count. */
+export async function hunterUsage(fallbackUsed: number): Promise<{ used: number; total: number }> {
+  if (hunterCache && Date.now() - hunterCache.at < HUNTER_TTL) return hunterCache.v;
+  const acct = await Promise.race([hunterAccount().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
+  if (!acct) return { used: fallbackUsed, total: 50 };
+  hunterCache = { at: Date.now(), v: { used: acct.used, total: acct.available } };
+  return hunterCache.v;
+}
+
+export async function runsData() {
   const db = serverDb();
-  const [{ data: drafts }, { data: runs }] = await Promise.all([
-    db.from("drafts").select("*, startups(*)").order("created_at", { ascending: false }).limit(200),
-    db.from("runs").select("*").order("id", { ascending: false }).limit(60),
-  ]);
-  const rows = (drafts ?? []).filter((d: any) => d.startups);
-  const rank = (s: string) => (s === "sent" || s === "skipped" ? 1 : 0);
-  rows.sort((a: any, b: any) => rank(a.status) - rank(b.status) || (b.startups.score ?? b.startups.marks?.score_if_scored ?? 0) - (a.startups.score ?? a.startups.marks?.score_if_scored ?? 0));
-  const finished = (runs ?? []).filter((r: any) => r.finished_at && r.status !== "skipped");
-  const last = finished[0] ?? null;
+  const [{ data: runs }, lock] = await Promise.all([db.from("runs").select("*").order("id", { ascending: false }).limit(60), lockState(db)]);
+  const all = runs ?? [];
+  const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const today = dayKey(new Date().toISOString());
+  const todays = all.filter((r) => r.status !== "skipped" && dayKey(r.started_at) === today);
+  const sum = (k: string) => todays.reduce((a, r) => a + (r.counts?.[k] ?? 0), 0);
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
-  const hunterUsed = (runs ?? []).filter((r: any) => new Date(r.started_at) >= monthStart).reduce((a: number, r: any) => a + (r.counts?.hunter_lookups ?? 0), 0);
-  return { rows, last, hunterUsed, runs: runs ?? [] };
-}
-
-export function avgDelay(sourceDelays: Record<string, { avg_hours: number; n: number }> | null | undefined): number | null {
-  const v = Object.values(sourceDelays ?? {});
-  const n = v.reduce((a, x) => a + x.n, 0);
-  return n ? v.reduce((a, x) => a + x.avg_hours * x.n, 0) / n : null;
-}
-
-export const score = (s: any): number | null => (s?.score ?? s?.marks?.score_if_scored ?? null);
-
-export type FunnelData = { feeds: number; articlesRead: number; announcements: number; startups: number; rejected: number; fit: number; drafts: number; verified: number; unverified: number; none: number };
-
-/** Live totals straight from the tables, so the picture never goes blank after a run that found nothing new. */
-export async function funnelData(): Promise<FunnelData> {
-  const db = serverDb();
-  const n = async (table: string, f?: (q: any) => any): Promise<number> => {
-    let q: any = db.from(table).select("id", { count: "exact", head: true });
-    if (f) q = f(q);
-    return (await q).count ?? 0;
+  const hunterRuns = all.filter((r) => new Date(r.started_at) >= monthStart).reduce((a, r) => a + (r.counts?.hunter_lookups ?? 0), 0);
+  return {
+    runs: all.slice(0, 20).map((r) => ({ ...r, view: runStatus(r, lock.locked) })),
+    today: { newStartups: sum("startups_new"), drafted: sum("drafted"), rejected: sum("rejected") },
+    hunter: await hunterUsage(hunterRuns),
+    lock,
   };
-  const real = (q: any) => q.neq("status", "draft_failed");
-  const [feeds, articlesRead, announcements, startups, rejected, drafts, verified, unverified, none] = await Promise.all([
-    n("feeds", (q) => q.eq("active", true)),
-    n("articles", (q) => q.eq("status", "processed")),
-    n("articles", (q) => q.not("startup_id", "is", null)),
-    n("startups"),
-    n("startups", (q) => q.eq("status", "rejected")),
-    n("drafts", real),
-    n("drafts", (q) => real(q).eq("email_source", "verified")),
-    n("drafts", (q) => real(q).eq("email_source", "unverified")),
-    n("drafts", (q) => real(q).eq("email_source", "none")),
-  ]);
-  return { feeds, articlesRead, announcements, startups, rejected, fit: startups - rejected, drafts, verified, unverified, none };
 }
 
-/** Hunter's own usage figure (covers lookups made outside runs too); falls back to the count kept per run. */
-export async function hunterUsage(fallbackUsed: number): Promise<{ used: number; total: number }> {
-  const acct = await Promise.race([hunterAccount().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
-  return acct ? { used: acct.used, total: acct.available } : { used: fallbackUsed, total: 50 };
+/** Number in the Drafts nav item: drafts waiting in To review. */
+export const tabCountsForNav = () => count("drafts", (q) => q.in("status", ["new", "pending_gmail", "draft_failed"]));
+
+// ---------------------------------------------------------------------------------------------------- today
+export async function todayData() {
+  const [drafts, rejected, articlesRead, sources] = await Promise.all([
+    count("drafts", (q) => q.in("status", ["new", "pending_gmail"])),
+    count("startups", (q) => q.eq("status", "rejected")),
+    count("articles", (q) => q.eq("status", "processed")),
+    count("feeds", (q) => q.eq("active", true)),
+  ]);
+  return { drafts, rejected, articlesRead, sources };
+}
+
+// ---------------------------------------------------------------------------------------------------- drafts
+export type Tab = "review" | "approved" | "done";
+export const tabOf = (status: string): Tab => (status === "approved" ? "approved" : ["done", "sent", "skipped"].includes(status) ? "done" : "review");
+
+const criteriaNames = async (): Promise<{ order: string[]; names: Record<string, string> }> => {
+  const { data } = await serverDb().from("rubric_criteria").select("key,name,sort_order").order("sort_order");
+  return { order: (data ?? []).map((c: Row) => c.key), names: Object.fromEntries((data ?? []).map((c: Row) => [c.key, c.name])) };
+};
+
+export async function draftsData(tab: Tab) {
+  const db = serverDb();
+  const [{ data: drafts }, crit] = await Promise.all([db.from("drafts").select("*, startups(*)").order("created_at", { ascending: false }).limit(300), criteriaNames()]);
+  const rows = (drafts ?? []).filter((d: Row) => d.startups);
+  const counts: Record<Tab, number> = { review: 0, approved: 0, done: 0 };
+  for (const d of rows) counts[tabOf(d.status)]++;
+  const mine = rows.filter((d: Row) => tabOf(d.status) === tab);
+  const ids = mine.map((d: Row) => d.startup_id);
+  const { data: arts } = ids.length ? await db.from("articles").select("id,title,source,published_at,canonical_url,startup_id").in("startup_id", ids) : { data: [] as Row[] };
+  const byStartup = new Map<number, Row[]>();
+  for (const a of arts ?? []) byStartup.set(a.startup_id, [...(byStartup.get(a.startup_id) ?? []), a]);
+  const t = (iso: string | null) => (iso ? new Date(iso).getTime() : Infinity);
+  const cards = mine.map((d: Row) => {
+    const s = d.startups;
+    const list = (byStartup.get(s.id) ?? []).sort((a, b) => t(a.published_at) - t(b.published_at) || a.id - b.id);
+    const marks = s.marks?.criteria ?? {};
+    const why = crit.order.filter((k) => marks[k]).map((k) => ({ name: crit.names[k] ?? k, mark: String(marks[k].mark), quote: (marks[k].quote as string | null) ?? null }));
+    if (s.marks?.stage?.label) why.unshift({ name: "Stage", mark: String(s.marks.stage.label), quote: s.marks.stage.quote ?? null });
+    const contact = (d.contacts ?? [])[0] ?? null;
+    return {
+      id: d.id as number,
+      status: d.status as string,
+      startup: { name: s.name as string, stage: s.stage_label as string | null, amount: s.amount_text as string | null, sector: s.sector as string | null, location: s.location as string | null, score: score(s) as number | null },
+      announced: list[0]?.published_at ?? s.first_seen_at ?? null,
+      to: d.to_email as string | null,
+      emailSource: d.email_source as string,
+      contact: contact ? { source: contact.source as string, verified: !!contact.verified, domain: (s.domain as string | null) ?? ((d.to_email as string | null)?.split("@")[1] ?? null) } : null,
+      subject: d.subject as string | null,
+      body: d.body as string | null,
+      firstReportedBy: list[0]?.source ?? null,
+      articles: list.map((a) => ({ id: a.id as number, source: a.source as string, title: a.title as string, url: a.canonical_url as string, published: a.published_at as string | null })),
+      why,
+      gmail: d.gmail_draft_id as string | null,
+      createdAt: d.created_at as string,
+    };
+  });
+  // To review (and the other tabs): best fit first, then newest
+  cards.sort((a, b) => (b.startup.score ?? -1) - (a.startup.score ?? -1) || b.createdAt.localeCompare(a.createdAt));
+  return { cards, counts };
+}
+
+// ---------------------------------------------------------------------------------------------------- rejected
+export async function rejectedData(f: { sector?: string; announced?: string; source?: string }) {
+  const db = serverDb();
+  const [{ data: sts }, crit] = await Promise.all([db.from("startups").select("*").eq("status", "rejected").order("decided_at", { ascending: false }).limit(500), criteriaNames()]);
+  const ids = (sts ?? []).map((s: Row) => s.id);
+  const arts: Row[] = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data } = await db.from("articles").select("id,title,source,published_at,canonical_url,startup_id").in("startup_id", ids.slice(i, i + 100));
+    arts.push(...(data ?? []));
+  }
+  const first = primaryArticles(arts as ArtRow[]);
+  const now = Date.now();
+  const maxAge = f.announced === "24h" ? 24 * 3_600_000 : f.announced === "7d" ? 7 * 24 * 3_600_000 : null;
+  const all = (sts ?? []).map((s: Row) => {
+    const a = first.get(s.id);
+    return {
+      id: s.id as number,
+      name: s.name as string,
+      stage: s.stage_label as string | null,
+      sector: s.sector as string | null,
+      source: (a?.source as string | undefined) ?? null,
+      url: (a?.canonical_url as string | undefined) ?? null,
+      announced: (a?.published_at as string | undefined) ?? (s.first_seen_at as string),
+      reason: plainReason(s.reject_reason, crit.names),
+      quote: s.reject_quote as string | null,
+      score: s.score as number | null,
+    };
+  });
+  const rows = all.filter((r) => (!f.sector || r.sector === f.sector) && (!f.source || r.source === f.source) && (maxAge == null || now - new Date(r.announced).getTime() <= maxAge));
+  return {
+    rows,
+    total: all.length,
+    sectors: [...new Set(all.map((r) => r.sector).filter(Boolean) as string[])].sort(),
+    sources: [...new Set(all.map((r) => r.source).filter(Boolean) as string[])].sort(),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------- sources
+export async function sourcesData(f: { source?: string; outcome?: string }) {
+  const db = serverDb();
+  const [{ data: feeds }, { data: arts }, { data: sts }, crit, { data: kw }] = await Promise.all([
+    db.from("feeds").select("*").order("id"),
+    db.from("articles").select("id,title,source,published_at,first_seen_at,canonical_url,status,error,startup_id").order("first_seen_at", { ascending: false }).limit(1500),
+    db.from("startups").select("id,name,status,reject_reason"),
+    criteriaNames(),
+    db.from("rubric_settings").select("value").eq("key", "funding_keywords").maybeSingle(),
+  ]);
+  const articles = arts ?? [];
+  const startups = new Map((sts ?? []).map((s: Row) => [s.id as number, s]));
+  const primary = primaryArticles(articles as ArtRow[]);
+  const match = keywordMatcher(Array.isArray(kw?.value) ? (kw!.value as string[]) : []);
+
+  const items = articles.map((a: Row) => {
+    const p = a.startup_id != null ? primary.get(a.startup_id) : undefined;
+    const o = articleOutcome(a as any, startups.get(a.startup_id) as any, !p || p.id === a.id, p?.source ?? null, crit.names);
+    return { id: a.id as number, title: (a.title as string) || a.canonical_url, url: a.canonical_url as string, source: a.source as string, published: (a.published_at as string | null) ?? null, seen: a.first_seen_at as string, ...o };
+  });
+  items.sort((x, y) => new Date(y.published ?? y.seen).getTime() - new Date(x.published ?? x.seen).getTime());
+
+  const recent = Date.now() - 3 * 24 * 3_600_000;
+  const feedRows = (feeds ?? []).map((fd: Row) => {
+    const mine = articles.filter((a: Row) => a.source === fd.name);
+    const delays = mine.filter((a: Row) => a.published_at).map((a: Row) => Math.max(0, (new Date(a.first_seen_at).getTime() - new Date(a.published_at).getTime()) / 3_600_000));
+    const status: { label: string; tone: Tone } = !fd.active ? { label: "Paused", tone: "neutral" } : mine.length === 0 ? { label: "Not read yet", tone: "neutral" } : mine.some((a: Row) => new Date(a.first_seen_at).getTime() > recent) ? { label: "OK", tone: "ok" } : { label: "Nothing new in 3 days", tone: "warn" };
+    return {
+      id: fd.id as number,
+      name: fd.name as string,
+      status,
+      read: mine.filter((a: Row) => a.status === "processed").length,
+      passed: mine.filter((a: Row) => match(String(a.title ?? ""))).length,
+      delay: median(delays),
+    };
+  });
+
+  const filtered = items.filter((i) => (!f.source || i.source === f.source) && (!f.outcome || i.outcome === (f.outcome as Outcome)));
+  return { feeds: feedRows, items: filtered.slice(0, 400), shown: Math.min(filtered.length, 400), matching: filtered.length, total: items.length, sources: (feeds ?? []).map((x: Row) => x.name as string) };
+}
+
+// ---------------------------------------------------------------------------------------------------- rubric
+export async function rubricScores(): Promise<{ scores: number[]; label: string }> {
+  const db = serverDb();
+  const { data: newest } = await db.from("startups").select("first_seen_at").not("score", "is", null).order("first_seen_at", { ascending: false }).limit(1);
+  const at = newest?.[0]?.first_seen_at as string | undefined;
+  // the scan that produced the newest scored startup: the run whose time window contains it
+  const { data: runs } = at ? await db.from("runs").select("started_at,finished_at").neq("status", "skipped").lte("started_at", at).order("id", { ascending: false }).limit(1) : { data: [] as Row[] };
+  const run = runs?.[0];
+  let q = db.from("startups").select("score").not("score", "is", null);
+  if (run) q = q.gte("first_seen_at", run.started_at).lte("first_seen_at", run.finished_at ?? new Date().toISOString());
+  const { data } = await q.limit(2000);
+  return { scores: (data ?? []).map((s: Row) => Number(s.score)), label: run ? "scored in the latest scan" : "scored so far" };
 }

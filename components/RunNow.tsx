@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useGate } from "./AccessGate";
 
 type Step = { key: string; label: string; state: "pending" | "active" | "done"; detail: string };
 type Run = { id: number; started_at: string; finished_at: string | null; status: string; counts: any; errors: string[] };
 
 export default function RunNow() {
   const router = useRouter();
+  const { guard } = useGate();
   const [open, setOpen] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -35,30 +37,28 @@ export default function RunNow() {
   }
 
   async function start() {
-    setOpen(true);
     setBusy(true);
     setRun(null);
     setMsg(null);
     since.current = Date.now();
+    const res = await guard(() => fetch("/api/run", { method: "POST" }), "Running now spends Gemini quota and creates drafts, so it needs the code.").catch(() => null);
+    if (!res) {
+      setBusy(false);
+      return; // code prompt cancelled
+    }
+    setOpen(true);
+    if (res.status === 409) {
+      setMsg("Skipped: a run is already in progress.");
+      setBusy(false);
+      return;
+    }
+    if (!res.ok) {
+      setMsg(`The run could not start (HTTP ${res.status}).`);
+      setBusy(false);
+      return;
+    }
     timer.current = setInterval(poll, 1500);
-    try {
-      const res = await fetch("/api/run", { method: "POST" });
-      if (res.status === 409) {
-        setMsg("Skipped: a run is already in progress.");
-        stop();
-        setBusy(false);
-        return;
-      }
-      if (!res.ok) setMsg(`The run could not start (HTTP ${res.status}).`);
-      await poll();
-    } catch {
-      setMsg("The connection dropped. The run may still be going; this window keeps checking.");
-    } finally {
-      if (res_done()) setBusy(false);
-    }
-    function res_done() {
-      return !timer.current;
-    }
+    await poll();
   }
 
   const steps: Step[] = run?.counts?.steps ?? [];
@@ -68,10 +68,10 @@ export default function RunNow() {
       <button className="btn primary" onClick={start} disabled={busy}>{busy ? "Running…" : "Run now"}</button>
       {open && (
         <div className="modal" role="dialog" aria-modal="true" aria-label="Run now" onClick={(e) => e.target === e.currentTarget && !busy && setOpen(false)}>
-          <div>
-            <h3 style={{ fontSize: 18 }}>Run now</h3>
-            <p className="meta" style={{ margin: "4px 0 12px" }}>A real run. It reads news, scores startups and writes drafts. It never sends email.</p>
-            {msg && <div className="banner error" role="alert">{msg}</div>}
+          <div className="box" style={{ width: 620 }}>
+            <h2>Run now</h2>
+            <p className="sub" style={{ marginBottom: 12 }}>A real run. It reads every article, scores startups and writes drafts. It never sends email.</p>
+            {msg && <div className="note bad" role="alert">{msg}</div>}
             <div aria-live="polite">
               {(steps.length ? steps : [{ key: "wait", label: "Starting…", state: "active", detail: "" } as Step]).map((s, i) => (
                 <div key={s.key} className={`step ${s.state}${s.state !== "pending" ? " on" : ""}`}>
@@ -82,13 +82,11 @@ export default function RunNow() {
             </div>
             {run?.finished_at && (
               <p style={{ marginTop: 12, fontWeight: 600 }}>
-                {run.status === "error" ? "Run finished with an error." : "Run finished."} {c.passed ?? 0} fit · {c.rejected ?? 0} rejected · {c.duplicates ?? 0} duplicates skipped · {c.drafted ?? 0} drafted · {c.errors ?? 0} errors.
+                {run.status === "error" ? "Run finished with an error." : "Run finished."} {c.passed ?? 0} fit · {c.rejected ?? 0} rejected · {c.duplicates ?? 0} repeats skipped · {c.drafted ?? 0} drafted · {c.errors ?? 0} errors.
               </p>
             )}
-            {run?.errors?.length ? <div className="banner error" style={{ marginTop: 10 }}>{run.errors.slice(0, 3).join(" · ")}</div> : null}
-            <div style={{ marginTop: 16 }}>
-              <button className="btn" onClick={() => setOpen(false)} disabled={busy && !run?.finished_at && false}>Close</button>
-            </div>
+            {run?.errors?.length ? <div className="note bad" style={{ marginTop: 12 }}>{run.errors.slice(0, 3).join(" · ")}</div> : null}
+            <div className="actions" style={{ marginTop: 16 }}><button className="btn" onClick={() => setOpen(false)}>Close</button></div>
           </div>
         </div>
       )}

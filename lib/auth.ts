@@ -1,5 +1,9 @@
-/** Access-code auth. The cookie holds a hash of ACCESS_CODE, never the code itself. */
+/**
+ * Access code for actions that change data. Reading the dashboard is public.
+ * The cookie holds a hash of ACCESS_CODE, never the code itself.
+ */
 export const COOKIE = "outreach_access";
+export const COOKIE_MAX_AGE = 60 * 60 * 12; // the code is asked again after 12 hours
 
 async function sha256Hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -13,7 +17,7 @@ export function safeEqual(a: string, b: string): boolean {
   return d === 0;
 }
 
-/** Testing mode: the unlock page accepts any non-empty code. Set ACCEPT_ANY_ACCESS_CODE=false to enforce ACCESS_CODE again. */
+/** Testing mode (ACCEPT_ANY_ACCESS_CODE=true): any non-empty code unlocks. Set it to false to enforce ACCESS_CODE. */
 export const anyCodeAccepted = () => process.env.ACCEPT_ANY_ACCESS_CODE === "true";
 
 export async function expectedCookie(): Promise<string | null> {
@@ -26,10 +30,11 @@ export async function cookieOk(value: string | undefined | null): Promise<boolea
   return !!exp && !!value && safeEqual(value, exp);
 }
 
+/** Compared against ACCESS_CODE on the server (unless testing mode is on). If ACCESS_CODE is not set, nothing unlocks. */
 export async function codeOk(code: string): Promise<boolean> {
   if (anyCodeAccepted()) return code.trim().length > 0;
   const real = process.env.ACCESS_CODE;
-  return !!real && safeEqual(await sha256Hex(code), await sha256Hex(real));
+  return !!real && code.length > 0 && safeEqual(await sha256Hex(code), await sha256Hex(real));
 }
 
 export function bearerOk(header: string | null | undefined): boolean {
@@ -37,7 +42,7 @@ export function bearerOk(header: string | null | undefined): boolean {
   return !!secret && !!header && safeEqual(header, `Bearer ${secret}`);
 }
 
-function cookieFrom(req: Request): string | undefined {
+export function cookieFrom(req: Request): string | undefined {
   return req.headers.get("cookie")?.split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
 }
 

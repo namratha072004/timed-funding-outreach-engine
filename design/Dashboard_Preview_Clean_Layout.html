@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-palette="aurora">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Funding Outreach – clean layout preview</title>
+<style>
+:root{
+  --bg:#F7F5F0; --surface:#FFFFFF; --side:#FBFAF6; --line:#E8E4D9; --ink:#23302B; --muted:#6D7A73;
+  --accent:#1F5C4A; --accent-ink:#FFFFFF; --tint:#E4EFE9; --ok-bg:#E4EFE9; --ok:#1F5C4A;
+  --warn-bg:#FBEFD2; --warn:#8A5A00; --bad-bg:#F8E3E0; --bad:#9B2C20; --hl:#FFF1C9; --shadow:0 1px 2px rgba(35,48,43,.05);
+}
+[data-theme="dark"]{
+  --bg:#151D19; --surface:#1D2823; --side:#18221D; --line:#2E3B35; --ink:#E6ECE8; --muted:#97A59D;
+  --accent:#6CBF9F; --accent-ink:#10201A; --tint:#243A31; --ok-bg:#223A30; --ok:#7CCBAC;
+  --warn-bg:#3C3218; --warn:#E6B95A; --bad-bg:#40231F; --bad:#EE9387; --hl:#4A3F17; --shadow:none;
+}
+/* palettes: neutrals and accent only; status colors stay the same */
+[data-palette="indigo"]{--bg:#F6F7FB;--surface:#FFFFFF;--side:#FAFBFE;--line:#E3E6F0;--ink:#1B2133;--muted:#646C85;--accent:#3D4FD6;--accent-ink:#FFFFFF;--tint:#E8EBFC;--shadow:0 1px 2px rgba(20,24,31,.05)}
+[data-palette="indigo"][data-theme="dark"]{--bg:#0F1220;--surface:#171B2E;--side:#121627;--line:#262C45;--ink:#E8EAF5;--muted:#9AA2BF;--accent:#8D9BFF;--accent-ink:#0C1030;--tint:#222845;--shadow:none}
+[data-palette="slate"]{--bg:#F6F7F8;--surface:#FFFFFF;--side:#FAFAFB;--line:#E4E7EB;--ink:#14181F;--muted:#5F6876;--accent:#1F5BD8;--accent-ink:#FFFFFF;--tint:#EAF0FD;--shadow:0 1px 2px rgba(20,24,31,.05)}
+[data-palette="slate"][data-theme="dark"]{--bg:#0E1116;--surface:#151A21;--side:#11151B;--line:#252C36;--ink:#E7EAEE;--muted:#98A1AE;--accent:#6EA2FF;--accent-ink:#07142E;--tint:#1B2638;--shadow:none}
+[data-palette="terra"]{--bg:#FAF6F1;--surface:#FFFFFF;--side:#FCF9F5;--line:#EBE2D8;--ink:#2B2118;--muted:#7A6A5C;--accent:#B04A22;--accent-ink:#FFFFFF;--tint:#F7E7DD;--shadow:0 1px 2px rgba(20,24,31,.05)}
+[data-palette="terra"][data-theme="dark"]{--bg:#1A1512;--surface:#231C18;--side:#1E1814;--line:#342923;--ink:#F1E9E1;--muted:#B3A396;--accent:#EE9468;--accent-ink:#2A1306;--tint:#3A2A20;--shadow:none}
+[data-palette="plum"]{--bg:#F9F6FA;--surface:#FFFFFF;--side:#FCFAFD;--line:#E9E2EC;--ink:#26192D;--muted:#75657D;--accent:#7A3E9D;--accent-ink:#FFFFFF;--tint:#F0E4F6;--shadow:0 1px 2px rgba(20,24,31,.05)}
+[data-palette="plum"][data-theme="dark"]{--bg:#17101B;--surface:#201727;--side:#1B1321;--line:#32243C;--ink:#F0E9F4;--muted:#B1A1BA;--accent:#CB9BEA;--accent-ink:#241030;--tint:#34244A;--shadow:none}
+/* Aurora: inspired by a dark dashboard reference. Near-black, lilac to blue gradients, mint for "good". */
+[data-palette="aurora"]{--bg:#F7F6FC;--surface:#FFFFFF;--side:#FBFAFE;--line:#E6E3F3;--ink:#17142B;--muted:#675F85;--accent:#6A47E6;--accent-ink:#FFFFFF;--tint:#EEE9FD;--shadow:0 1px 2px rgba(23,20,43,.05);--grad:linear-gradient(135deg,#6A47E6,#4B63F0);--grad-ink:#FFFFFF;--glow:rgba(106,71,230,.14)}
+[data-palette="aurora"][data-theme="dark"]{--bg:#0B0B14;--surface:#13131F;--side:#0E0E18;--line:#25253A;--ink:#F1F1F8;--muted:#9C9CB8;--accent:#A995FF;--accent-ink:#0E0A24;--tint:#231F45;--shadow:none;--grad:linear-gradient(135deg,#A995FF,#7FA2FF);--grad-ink:#0E0A24;--glow:rgba(140,120,255,.22);--ok-bg:#16322A;--ok:#6EE7B7;--warn-bg:#3A2A14;--warn:#FDBA74;--bad-bg:#3E1D2B;--bad:#F9A8C0;--hl:#3F3A1A}
+[data-palette="aurora"] .btn.primary{background:var(--grad);border-color:transparent;color:var(--grad-ink)}
+[data-palette="aurora"] .brand{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+[data-palette="aurora"] nav button.on{box-shadow:inset 3px 0 0 var(--accent);border-radius:0 8px 8px 0}
+[data-palette="aurora"] .score b,[data-palette="aurora"] .stat b,[data-palette="aurora"] h1{font-family:Georgia,"DejaVu Serif",serif;font-weight:500;letter-spacing:-.01em}
+[data-palette="aurora"] .card{border-radius:14px}
+[data-palette="aurora"] .hero{position:relative}
+[data-palette="aurora"] .hero::before{content:"";position:absolute;inset:-120px 0 auto 0;height:340px;background:radial-gradient(60% 70% at 50% 40%,var(--glow),transparent 70%);pointer-events:none;z-index:-1}
+[data-palette="aurora"] .hero .stats .stat:first-child{background:var(--grad);border-color:transparent}
+[data-palette="aurora"] .hero .stats .stat:first-child b,[data-palette="aurora"] .hero .stats .stat:first-child span{color:var(--grad-ink)}
+[data-palette="aurora"] .tabs button.on{border-image:var(--grad) 1}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+[data-palette="aurora"] .hero>*{animation:rise .6s ease both}[data-palette="aurora"] .hero>*:nth-child(2){animation-delay:.08s}[data-palette="aurora"] .hero>*:nth-child(3){animation-delay:.16s}[data-palette="aurora"] .hero>*:nth-child(4){animation-delay:.24s}[data-palette="aurora"] .hero>*:nth-child(5){animation-delay:.32s}
+@media (prefers-reduced-motion:reduce){[data-palette="aurora"] .hero>*{animation:none}}
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,.brand{font-family:Georgia,"DejaVu Serif",serif;font-weight:600}
+button{font:inherit;cursor:pointer}
+/* top bar */
+.top{height:56px;display:flex;align-items:center;gap:16px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{font-size:18px;color:var(--accent)}
+.status{margin-left:auto;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;background:none;border:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;height:34px;padding:0 12px;font-size:13px}
+/* layout */
+.shell{display:grid;grid-template-columns:200px 1fr;min-height:calc(100vh - 56px)}
+nav{background:var(--side);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+nav button{text-align:left;border:0;background:none;color:var(--muted);padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+nav button.on{background:var(--tint);color:var(--accent);font-weight:600}
+nav .count{font-size:12px;background:var(--line);color:var(--ink);border-radius:20px;padding:0 8px}
+main{padding:32px 24px 64px;overflow-x:clip}
+.wrap{max-width:1000px;margin:0 auto}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+h1{font-size:26px;line-height:1.2}
+.sub{color:var(--muted);font-size:14px;margin-top:4px}
+/* components */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 14px;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:5px 10px;font-size:13px}
+.pill{display:inline-block;font-size:12px;padding:2px 10px;border-radius:20px;font-weight:600}
+.ok{background:var(--ok-bg);color:var(--ok)} .warn{background:var(--warn-bg);color:var(--warn)} .bad{background:var(--bad-bg);color:var(--bad)} .neutral{background:var(--tint);color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tabs button{border:0;background:none;padding:10px 14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--accent);border-color:var(--accent);font-weight:600}
+.stack{display:flex;flex-direction:column;gap:16px}
+/* draft card */
+.draft{padding:20px}
+.row1{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.name{font-size:17px;font-weight:600}
+.meta{color:var(--muted);font-size:13px;margin-top:2px}
+.score{text-align:right}.score b{font-size:24px;font-family:Georgia,serif}.score span{display:block;font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin:16px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.v{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.mail{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;font-size:14px;white-space:pre-wrap}
+.ph{background:var(--hl);border-radius:3px;padding:0 3px}
+.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+details{margin-top:12px;font-size:14px} summary{cursor:pointer;color:var(--accent);font-weight:600}
+details ul{margin:8px 0 0 18px;color:var(--muted)}
+.srcbox{margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:8px}
+.srcbox .k{margin-bottom:6px}
+.srcbox .li{display:flex;gap:8px;align-items:baseline;font-size:14px;padding:3px 0;flex-wrap:wrap}
+.srcbox a,td a{color:var(--accent);text-decoration:none;font-weight:600}
+.srcbox a:hover,td a:hover{text-decoration:underline}
+.pub{font-size:12px;font-weight:700;background:var(--tint);color:var(--accent);padding:1px 8px;border-radius:6px}
+.hero{max-width:640px;margin:8vh auto 0;text-align:center}
+.hero h1{font-size:40px;margin-bottom:8px}.hero .lead{font-size:17px;color:var(--muted);margin-bottom:32px}
+.hero .stats{grid-template-columns:repeat(3,1fr);text-align:left;margin-bottom:32px}
+.hero .btn.primary{font-size:16px;padding:12px 28px}
+.hero .fine{margin-top:20px;font-size:13px;color:var(--muted)}
+.hero .fine a{color:var(--accent);font-weight:600;cursor:pointer}
+.shell.solo{grid-template-columns:1fr}.shell.solo nav{display:none}
+/* editable settings */
+.sect{margin-bottom:24px}.sect>h2{font-size:18px;margin-bottom:4px}.sect>.sub{margin:0 0 12px}
+.fld{display:flex;justify-content:space-between;gap:24px;padding:16px 20px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.fld:last-child{border-bottom:0}.fld .l{flex:1;min-width:220px}.fld .l b{display:block}.fld .l p{color:var(--muted);font-size:13px;margin-top:2px}
+.inp{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:84px;text-align:right}
+.inp.wide{width:100%;text-align:left;min-width:180px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--tint);color:var(--accent);padding:5px 6px 5px 12px;border-radius:20px;font-size:14px}
+.chip button{border:0;background:none;color:inherit;font-size:16px;line-height:1;padding:0 4px;opacity:.7}
+.addrow{display:flex;gap:8px;padding:0 20px 16px}.addrow input{flex:1}
+.bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:8px;width:160px}.bar i{display:block;height:100%;background:var(--accent)}
+.total{display:flex;justify-content:space-between;padding:14px 20px;background:var(--bg);border-top:1px solid var(--line);font-weight:600;border-radius:0 0 12px 12px}
+.sw{display:flex;align-items:center;gap:8px;font-size:14px}
+.help{background:var(--tint);border-radius:8px;padding:10px 14px;margin:0 20px 16px;font-size:13px;color:var(--ink)}
+.save{position:sticky;bottom:0;margin:24px -24px -64px;padding:14px 24px;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:4}
+.save .msg{font-size:14px}.btn[disabled]{opacity:.45;cursor:not-allowed}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:14px;z-index:30;display:none}
+/* filters + table */
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+select{font:inherit;font-size:14px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:140px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th.n,td.n{text-align:right}
+.tw{overflow-x:auto}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat{padding:16px}.stat b{font-size:28px;font-family:Georgia,serif;display:block}.stat span{font-size:13px;color:var(--muted)}
+.empty{padding:48px 24px;text-align:center}.empty h2{font-size:18px;margin-bottom:6px}.empty p{color:var(--muted);margin-bottom:16px}
+.rule{display:flex;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.rule:last-child{border-bottom:0}.rule p{color:var(--muted);font-size:13px;margin-top:2px}
+.note{background:var(--tint);color:var(--accent);padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:20px}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.show{display:flex}.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;width:360px;max-width:100%}
+.box input{width:100%;margin:12px 0;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.banner{font-size:12px;color:var(--muted);text-align:center;padding:6px;background:var(--side);border-bottom:1px solid var(--line)}
+@media(max-width:760px){
+  .save{margin:24px -16px -48px;padding:14px 16px}.fld{padding:14px 16px}.chips{padding:14px 16px}.addrow{padding:0 16px 14px}.help{margin:0 16px 14px}
+  .hero h1{font-size:30px}.hero .stats{grid-template-columns:1fr}
+  .shell{grid-template-columns:minmax(0,1fr)}.shell.solo{grid-template-columns:minmax(0,1fr)} main{min-width:0} nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px 12px}
+  nav button{white-space:nowrap} main{padding:20px 16px 48px} .top{padding:0 16px} .grid2{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr} .status span.txt{display:none}
+}
+</style>
+</head>
+<body>
+<div class="banner">Preview with sample data only. Names and numbers are made up.</div>
+<header class="top">
+  <span class="brand">Funding Outreach</span>
+  <button class="status" onclick="go('runs')"><i class="dot"></i><span class="txt">Last run 2 h ago · OK · 6 new, 3 drafted</span></button>
+  <select class="icon-btn" id="pal" onchange="document.documentElement.dataset.palette=this.value" title="Colour palette"><option value="aurora" selected>Palette: Aurora</option><option value="green">Palette: Green</option><option value="slate">Palette: Slate blue</option><option value="indigo">Palette: Indigo</option><option value="terra">Palette: Terracotta</option><option value="plum">Palette: Plum</option></select>
+  <button class="icon-btn" id="theme" onclick="toggleTheme()">Light mode</button>
+</header>
+<div class="shell">
+  <nav id="nav"></nav>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="box">
+  <h2 id="mtitle" style="font-size:18px">Enter access code</h2>
+  <p class="sub" id="mtext">This action changes data, so it needs the code. Viewing is open to everyone.</p>
+  <input id="code" type="password" placeholder="Access code">
+  <div class="actions" style="margin-top:0"><button class="btn primary" onclick="confirmCode()">Confirm</button><button class="btn" onclick="closeModal()">Cancel</button></div>
+</div></div>
+
+<script>
+const SAMPLE_SCORES=[82,71,68,55,48,41];
+const S={rub:{pass:65,w:{sector:30,geo:15,traction:25,team:20,idea:10},rej:{sector:true,geo:true},sectors:['AI','enterprise software / SaaS','fintech','healthtech','consumer internet and D2C (including e-commerce and foodtech)'],geos:['India'],stages:{'Pre-seed':true,'Seed':true},look:24,version:4},
+ run:{maxArt:30,maxGem:40,hunter:2,kw:['seed','pre-seed','raises','raised','funding','secures','bags','backed','angel round','led by','crore','lakh','million']},
+ tab:'review',page:'welcome',src:'All',out:'All',pending:null,
+ drafts:[
+  {id:1,n:'Northwind Labs',stage:'Seed',amt:'₹18 Cr',sector:'Enterprise AI',loc:'Bengaluru',score:82,when:'Announced 6 h ago',src:'Inc42',email:'founder@northwind.example',verified:true,subject:'Congrats on the seed round, Northwind Labs',tab:'review',arts:[{pub:'Inc42',t:'Northwind Labs raises ₹18 Cr in seed round',w:'6 h ago'},{pub:'Entrackr',t:'Northwind Labs bags ₹18 Cr to build support agents',w:'5 h ago'}],contact:'Hunter.io lookup · northwind.example · 94% confidence',
+   marks:['Sector: yes, “builds AI agents for enterprise support teams”','Geography: yes, “headquartered in Bengaluru”','Traction: partial, “early pilots with three customers”'],
+   body:'Hi Aarav,\n\nCongratulations on closing your seed round. We run [PROGRAM NAME] at [ACCELERATOR], and your work on enterprise support agents fits what we back.\n\n[CALL TO ACTION]\n\nBest,\n[SENDER]'},
+  {id:2,n:'Kiln Health',stage:'Pre-seed',amt:'₹4 Cr',sector:'Healthtech',loc:'Pune',score:71,when:'Announced 11 h ago',src:'YourStory',email:'hello@kilnhealth.example',verified:false,subject:'Your pre-seed round, Kiln Health',tab:'review',arts:[{pub:'YourStory',t:'Kiln Health secures ₹4 Cr pre-seed funding',w:'11 h ago'}],contact:'Found on the startup’s contact page · not verified by Hunter',
+   marks:['Sector: yes, “clinic workflow software”','Geography: yes, “based in Pune”','Team: partial, “two founders from hospital tech”'],
+   body:'Hi team,\n\nCongratulations on your pre-seed round. [PROGRAM NAME] at [ACCELERATOR] works with early healthtech teams.\n\n[CALL TO ACTION]\n\nBest,\n[SENDER]'},
+  {id:3,n:'Ledgerly',stage:'Seed',amt:'₹9 Cr',sector:'Fintech',loc:'Mumbai',score:68,when:'Announced 20 h ago',src:'Inc42',email:'—',verified:false,subject:'Congrats on the seed round, Ledgerly',tab:'approved',arts:[{pub:'Inc42',t:'Ledgerly raises ₹9 Cr seed round',w:'20 h ago'}],contact:'No address found',marks:['Sector: yes, “payments reconciliation for SMEs”'],body:'Hi team,\n\n[CALL TO ACTION]\n\n[SENDER]'}
+ ],
+ rejected:[
+  {n:'Harbor Pay',stage:'Series A',why:'Stage is not pre-seed or seed',quote:'“raised a Series A of ₹60 Cr”',score:'—',src:'YourStory',when:'3 h ago'},
+  {n:'Orbit Wear',stage:'Seed',why:'Sector: no (apparel manufacturing)',quote:'“a factory-direct clothing brand”',score:'—',src:'Inc42',when:'8 h ago'},
+  {n:'Atlas Clinic',stage:'Seed',why:'Score 55 is below the pass mark of 65',quote:'Sector yes, traction unclear',score:'55',src:'Entrackr',when:'14 h ago'}
+ ],
+ arts:[
+  ['Northwind Labs raises ₹18 Cr in seed round','Inc42','6 h ago','09:02','drafted','Draft created'],
+  ['Ledgerly raises ₹9 Cr seed round','Inc42','20 h ago','09:02','drafted','Draft created'],
+  ['Orbit Wear raises seed from sample angels','Inc42','8 h ago','09:02','rejected','Sector: no (apparel)'],
+  ['Founders on hiring in 2026','Inc42','5 h ago','09:02','filtered','No funding keyword'],
+  ['Kiln Health secures ₹4 Cr pre-seed funding','YourStory','11 h ago','09:03','drafted','Draft created'],
+  ['Harbor Pay raises ₹60 Cr Series A','YourStory','3 h ago','09:03','rejected','Stage: Series A'],
+  ['Ten tools every founder should know','YourStory','2 h ago','09:03','filtered','No funding keyword'],
+  ['Northwind Labs bags ₹18 Cr to build support agents','Entrackr','5 h ago','09:04','merged','Same startup as Inc42 article'],
+  ['Atlas Clinic closes seed round','Entrackr','14 h ago','09:04','rejected','Score 55 below pass mark 65'],
+  ['Aurora Robotics raises $2M','Entrackr','3 days ago','09:04','old','Older than 24 hours'],
+  ['Weekly funding roundup','Entrackr','1 h ago','09:04','filtered','No single startup named'],
+  ['Government announces new startup policy','ET Entrepreneur','4 h ago','09:05','filtered','No funding keyword'],
+  ['Kiln Health pre-seed round, ET Startups report','ET Startups','10 h ago','09:06','merged','Same startup as YourStory article'],
+  ['Sample SaaS startup opens new office','ET Startups','6 h ago','09:06','filtered','No funding keyword'],
+  ['One feed page could not be read','ET Entrepreneur','—','09:05','error','Timed out; retried next run']
+ ],
+ feeds:[['Inc42','OK',24,5,'4 h'],['YourStory','OK',18,3,'7 h'],['Entrackr','OK',15,4,'3 h'],['ET Entrepreneur','OK',12,1,'9 h'],['ET Startups','OK',14,2,'5 h']],
+ runs:[['Today 09:12','OK','6 new · 3 drafted · 3 rejected','41 s'],['Yesterday 09:08','OK','4 new · 2 drafted · 2 rejected','33 s'],['2 days ago 09:21','Partial','Gemini 429 retried, 5 articles carried over','240 s']]
+};
+const pages=[['welcome','Today'],['drafts','Drafts'],['rejected','Rejected'],['sources','Sources'],['runs','Runs & health'],['rubric','Rubric']];
+function go(p){S.page=p;render()}
+function setTab(t){S.tab=t;render()}
+function move(id,t){S.drafts.find(d=>d.id===id).tab=t;render()}
+function toggleTheme(){const r=document.documentElement;const d=r.dataset.theme==='dark';r.dataset.theme=d?'light':'dark';document.getElementById('theme').textContent=d?'Dark mode':'Light mode'}
+function ask(action,txt){S.pending=action;document.getElementById('mtitle').textContent='Enter access code';document.getElementById('mtext').textContent=txt;document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show');document.getElementById('code').value=''}
+function confirmCode(){const a=S.pending;closeModal();
+  if(a==='__rubric'){S.rub=JSON.parse(JSON.stringify(S.rubD));S.rub.version++;S.rubD=null;toast('Saved as version '+S.rub.version+'. Applies from the next run.');render();return}
+  if(a==='__run'){S.run=JSON.parse(JSON.stringify(S.runD));S.runD=null;toast('Saved. Applies from the next run.');render();return}
+  alert('Preview only: in the real app this runs: '+a)}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3500)}
+const cur=k=>k==='rub'?(S.rubD||S.rub):(S.runD||S.run);
+function edit(k,fn){const key=k==='rub'?'rubD':'runD';if(!S[key])S[key]=JSON.parse(JSON.stringify(S[k]));fn(S[key]);render()}
+function discard(k){S[k==='rub'?'rubD':'runD']=null;render()}
+function pill(v){return v?'<span class="pill ok">Hunter verified</span>':'<span class="pill warn">Unverified: check before sending</span>'}
+function draftCard(d){
+  const tabs={review:['approved','Approve'],approved:['done','Mark done']};
+  return `<article class="card draft"><div class="row1"><div><div class="name">${d.n}</div><div class="meta">${d.stage} · ${d.amt} · ${d.sector} · ${d.loc} · ${d.when}</div></div><div class="score"><b>${d.score}</b><span>fit score</span></div></div>
+  <div class="grid2"><div><div class="k">To</div><div class="v">${d.email}</div></div><div><div class="k">Email source</div><div class="v">${d.email==='—'?'<span class="pill neutral">No address found</span>':pill(d.verified)}</div></div>
+  <div><div class="k">Subject</div><div class="v">${d.subject}</div></div><div><div class="k">First reported by</div><div class="v">${d.arts[0].pub}</div></div></div>
+  <div class="srcbox"><div class="k">Sources</div>${d.arts.map(a=>`<div class="li"><span class="pub">${a.pub}</span><a href="#" onclick="return false">${a.t} ↗</a><span class="meta">published ${a.w}</span></div>`).join('')}${d.arts.length>1?'<div class="meta" style="margin-top:4px">Same startup, '+d.arts.length+' articles merged into one draft.</div>':''}<div class="li" style="margin-top:4px"><span class="pub">Contact</span><span>${d.contact}</span></div></div>
+  <div class="mail">${d.body.replace(/\[(.*?)\]/g,'<span class="ph">[$1]</span>')}</div>
+  <details><summary>Why it passed (quotes from the article)</summary><ul>${d.marks.map(m=>`<li>${m}</li>`).join('')}</ul></details>
+  <div class="actions"><button class="btn primary" onclick="alert('Preview only: opens the Gmail draft')">Open Gmail draft</button>${tabs[d.tab]?`<button class="btn" onclick="move(${d.id},'${tabs[d.tab][0]}')">${tabs[d.tab][1]}</button>`:''}${d.tab!=='review'?`<button class="btn" onclick="move(${d.id},'review')">Back to review</button>`:''}</div></article>`}
+function viewDrafts(){
+  const c=t=>S.drafts.filter(d=>d.tab===t).length;
+  const list=S.drafts.filter(d=>d.tab===S.tab);
+  const tabs=[['review','To review'],['approved','Approved'],['done','Done']].map(([k,l])=>`<button class="${S.tab===k?'on':''}" onclick="setTab('${k}')">${l} ${c(k)}</button>`).join('');
+  return `<div class="head"><div><h1>Drafts</h1><div class="sub">Nothing is ever sent without you.</div></div></div>
+  <div class="tabs">${tabs}</div>
+  <div class="stack">${list.length?list.map(draftCard).join(''):`<div class="card empty"><h2>No drafts here</h2><p>${S.tab==='review'?'New drafts appear after the next morning run.':'Move drafts here from To review.'}</p><button class="btn" onclick="go('runs')">See last run</button></div>`}</div>`}
+function viewRejected(){
+  return `<div class="head"><div><h1>Rejected</h1><div class="sub">Startups that did not fit. Overrule one if you disagree.</div></div></div>
+  <div class="filters"><label>Sector<select><option>Any</option><option>AI</option><option>Fintech</option></select></label><label>Announced<select><option>Any</option><option>Last 24 hours</option><option>Last 7 days</option></select></label><label>Reported by<select><option>Any</option><option>Inc42</option></select></label></div>
+  <div class="card tw"><table><thead><tr><th>Startup</th><th>Reason</th><th class="n">Score</th><th>When</th><th></th></tr></thead><tbody>${S.rejected.map(r=>`<tr><td><b>${r.n}</b><div class="meta">${r.stage} · <span class="pub">${r.src}</span> · <a href="#" onclick="return false">Read article ↗</a></div></td><td>${r.why}<div class="meta">${r.quote}</div></td><td class="n">${r.score}</td><td>${r.when}</td><td class="n"><button class="btn small" onclick="ask('Overrule ${r.n}','Overrule moves this startup to the review queue, so it needs the code.')">Overrule</button></td></tr>`).join('')}</tbody></table></div>`}
+function viewRuns(){
+  return `<div class="head"><div><h1>Runs &amp; health</h1><div class="sub">The morning run starts between 09:00 and 10:00 IST.</div></div><button class="btn primary" onclick="ask('Run now','Running now spends Gemini quota and creates drafts, so it needs the code.')">Run now</button></div>
+  <div class="stats"><div class="card stat"><b>6</b><span>new startups today</span></div><div class="card stat"><b>3</b><span>drafted</span></div><div class="card stat"><b>3</b><span>rejected</span></div><div class="card stat"><b>2 / 50</b><span>Hunter lookups this month</span></div></div>
+  <h2 style="font-size:18px;margin:0 0 12px">Recent runs</h2>
+  <div class="card tw"><table><thead><tr><th>Started</th><th>Status</th><th>Result</th><th class="n">Duration</th></tr></thead><tbody>${S.runs.map(r=>`<tr><td>${r[0]}</td><td><span class="pill ${r[1]==='OK'?'ok':'warn'}">${r[1]}</span></td><td>${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('')}</tbody></table></div>${viewRunSettings()}`}
+
+function viewWelcome(){
+  const g='Good morning';
+  const n=S.drafts.filter(d=>d.tab==='review').length;
+  const today=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  return `<div class="hero"><div class="meta" style="margin-bottom:8px">${today}</div><h1>${g}, Rohit.</h1>
+  <p class="lead">Your morning scan is done. Here is what it found.</p>
+  <div class="stats"><div class="card stat"><b>${n}</b><span>draft${n===1?'':'s'} ready for you</span></div><div class="card stat"><b>3</b><span>startups skipped (did not fit)</span></div><div class="card stat"><b>83</b><span>articles read from 5 sources</span></div></div>
+  <button class="btn primary" onclick="go('drafts')">Let’s get started</button>
+  <div class="fine">Nothing is ever sent without you. <a onclick="go('sources')">See where the articles came from</a></div></div>`}
+function setF(k,v){S[k]=v;render()}
+function viewSources(){
+  const rows=S.arts.filter(a=>(S.src==='All'||a[1]===S.src)&&(S.out==='All'||a[4]===S.out));
+  const cls={drafted:'ok',rejected:'bad',merged:'neutral',filtered:'neutral',old:'warn',error:'warn'};
+  const lab={drafted:'Drafted',rejected:'Rejected',merged:'Merged',filtered:'Not funding news',old:'Too old',error:'Error'};
+  const opt=(arr,cur)=>arr.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('');
+  return `<div class="head"><div><h1>Sources</h1><div class="sub">Where the articles are read. Every article the morning scan looked at, and what happened to it.</div></div></div>
+  <div class="card tw" style="margin-bottom:24px"><table><thead><tr><th>Feed</th><th>Status</th><th class="n">Articles read</th><th class="n">Passed keyword filter</th><th class="n">Median delay</th></tr></thead><tbody>${S.feeds.map(f=>`<tr><td><b>${f[0]}</b></td><td><span class="pill ok">${f[1]}</span></td><td class="n">${f[2]}</td><td class="n">${f[3]}</td><td class="n">${f[4]}</td></tr>`).join('')}</tbody></table></div>
+  <div class="filters"><label>Source<select onchange="setF('src',this.value)">${opt(['All','Inc42','YourStory','Entrackr','ET Entrepreneur','ET Startups'],S.src)}</select></label>
+  <label>What happened<select onchange="setF('out',this.value)"><option value="All" ${S.out==='All'?'selected':''}>All</option>${Object.keys(lab).map(k=>`<option value="${k}" ${S.out===k?'selected':''}>${lab[k]}</option>`).join('')}</select></label></div>
+  <div class="card tw"><table><thead><tr><th>Article</th><th>Source</th><th>Published</th><th>Outcome</th></tr></thead><tbody>${rows.length?rows.map(a=>`<tr><td><a href="#" onclick="return false">${a[0]} ↗</a><div class="meta">${a[5]}</div></td><td><span class="pub">${a[1]}</span></td><td>${a[2]}</td><td><span class="pill ${cls[a[4]]}">${lab[a[4]]}</span></td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px">No articles match these filters.</td></tr>'}</tbody></table></div>
+  <p class="meta" style="margin-top:12px">Showing ${rows.length} of the ${S.arts.length} sample articles here (the real list shows all 83). Feeds are managed in Supabase.</p>`}
+function chipList(k,path,items,ph){
+  const id='add_'+path.replace(/\W/g,'');
+  return `<div class="chips">${items.map((x,i)=>`<span class="chip">${x}<button title="Remove" onclick="edit('${k}',d=>{d.${path}.splice(${i},1)})">×</button></span>`).join('')||'<span class="meta">None yet</span>'}</div>
+  <div class="addrow"><input class="inp wide" id="${id}" placeholder="${ph}" onkeydown="if(event.key==='Enter')addItem('${k}','${path}')"><button class="btn" onclick="addItem('${k}','${path}')">Add</button></div>`}
+function addItem(k,path){const el=document.getElementById('add_'+path.replace(/\W/g,''));const v=el.value.trim();if(!v)return;edit(k,d=>{const a=path.split('.').reduce((o,x)=>o[x],d);if(!a.includes(v))a.push(v)})}
+function saveBar(k,ok,why){const dirty=!!S[k==='rub'?'rubD':'runD'];
+  return `<div class="save"><div class="msg">${!dirty?'No unsaved changes.':ok?'You have unsaved changes.':'<span style="color:var(--bad)">'+why+'</span>'}</div><div class="actions" style="margin:0"><button class="btn" ${dirty?'':'disabled'} onclick="discard('${k}')">Discard</button><button class="btn primary" ${dirty&&ok?'':'disabled'} onclick="ask('__${k==='rub'?'rubric':'run'}','Saving changes the settings, so it needs the access code.')">Save changes</button></div></div>`}
+function viewRunSettings(){
+  const d=cur('run');
+  const row=(label,desc,key,max)=>`<div class="fld"><div class="l"><b>${label}</b><p>${desc}</p></div><input class="inp" type="number" min="1" max="${max}" value="${d[key]}" onchange="edit('run',x=>{x['${key}']=Math.max(1,Math.min(${max},+this.value||1))})"></div>`;
+  return `<section class="sect" style="margin-top:32px"><h2>Run settings</h2><div class="sub">Limits that keep each morning run fast and inside your Gemini and Hunter quotas.</div>
+  <div class="card">${row('Articles per run','The most articles read in one run. The rest carry over to the next run.','maxArt',200)}${row('Gemini calls per run','The most AI calls in one run. Stops the run before it spends too much.','maxGem',200)}${row('Email lookups per run','How many startups get a Hunter email lookup. Hunter allows 50 a month.','hunter',10)}</div></section>
+  <section class="sect"><h2>Funding words</h2><div class="sub">An article must contain at least one of these words to be read by the AI. More words means more articles read, and more cost.</div>
+  <div class="card">${chipList('run','kw',d.kw,'Add a word, for example “pre-series A”')}</div></section>
+  ${saveBar('run',d.kw.length>0,'Add at least one word.')}`}
+function viewRubric(){
+  const d=cur('rub');const tot=Object.values(d.w).reduce((a,b)=>a+b,0);
+  const passN=SAMPLE_SCORES.filter(x=>x>=d.pass).length;
+  const crit=[['sector','Sector fit','Does the startup work in one of your sectors?',true],['geo','Geography fit','Is it based in one of your countries?',true],['traction','Traction','Customers, revenue or pilots mentioned in the article.',false],['team','Team','Founder background. Partial credit is allowed here.',false],['idea','Idea','How clear and distinct the idea is.',false]];
+  const stg=Object.keys(d.stages);
+  const ok=tot===100&&d.sectors.length>0&&d.geos.length>0&&stg.some(x=>d.stages[x]);
+  const why=tot!==100?'Weights add up to '+tot+'. They must add up to 100.':d.sectors.length===0?'Add at least one sector.':d.geos.length===0?'Add at least one country.':'Pick at least one stage.';
+  return `<div class="head"><div><h1>Rubric</h1><div class="sub">How a startup is scored. Change anything here and save. No Supabase needed. Active version ${S.rub.version}.</div></div></div>
+  <div class="note">Changes apply from the next run. Startups rejected earlier may be re-checked once, because the scoring changed.</div>
+  <section class="sect"><h2>Pass mark</h2><div class="sub">The score a startup needs to reach your Drafts.</div>
+  <div class="card"><div class="fld"><div class="l"><b>Minimum score</b><p>Scores run from 0 to 100. A startup at or above this number is drafted. Below it, it goes to Rejected, where you can still overrule it.</p></div><div><input class="inp" type="number" min="0" max="100" step="5" value="${d.pass}" onchange="edit('rub',x=>{x.pass=Math.max(0,Math.min(100,+this.value||0))})"> <span class="meta">out of 100</span></div></div>
+  <div class="help">At <b>${d.pass}</b>, <b>${passN} of 6</b> startups in today’s sample would reach Drafts. Lower the mark to see more startups, with more that only partly fit. Raise it to see fewer, stricter ones.</div></div></section>
+  <section class="sect"><h2>What counts, and how much</h2><div class="sub">Five checks. Each has a weight. Together they make the 100 points.</div>
+  <div class="card">${crit.map(c=>`<div class="fld"><div class="l"><b>${c[1]}</b><p>${c[2]}</p>${c[3]?`<label class="sw" style="margin-top:8px"><input type="checkbox" ${d.rej[c[0]]?'checked':''} onchange="edit('rub',x=>{x.rej['${c[0]}']=this.checked})"> Reject straight away if clearly “no”</label>`:''}</div><div><input class="inp" type="number" min="0" max="100" value="${d.w[c[0]]}" onchange="edit('rub',x=>{x.w['${c[0]}']=Math.max(0,Math.min(100,+this.value||0))})"> <span class="meta">points</span><div class="bar"><i style="width:${d.w[c[0]]}%"></i></div></div></div>`).join('')}
+  <div class="total"><span>Total</span><span style="color:${tot===100?'var(--ok)':'var(--bad)'}">${tot} / 100 ${tot===100?'✓':'(must be 100)'}</span></div></div></section>
+  <section class="sect"><h2>Sectors you back</h2><div class="sub">Startups outside these are rejected on sector. Add or remove as your thesis changes.</div>
+  <div class="card">${chipList('rub','sectors',d.sectors,'Add a sector, for example “deeptech”')}</div></section>
+  <section class="sect"><h2>Countries</h2><div class="sub">Where the startup must be based.</div>
+  <div class="card">${chipList('rub','geos',d.geos,'Add a country')}</div></section>
+  <section class="sect"><h2>Stages</h2><div class="sub">Which funding rounds you want to hear about.</div>
+  <div class="card"><div class="fld" style="justify-content:flex-start;gap:32px">${stg.map(x=>`<label class="sw"><input type="checkbox" ${d.stages[x]?'checked':''} onchange="edit('rub',z=>{z.stages['${x}']=this.checked})"> ${x}</label>`).join('')}</div></div></section>
+  <section class="sect"><h2>Look-back window</h2><div class="sub">How old a funding announcement can be.</div>
+  <div class="card"><div class="fld"><div class="l"><b>Announced within the last</b><p>Older news is ignored. Your outreach window is 30 to 60 days after the raise, so a short look-back means you hear about it first.</p></div><select onchange="edit('rub',x=>{x.look=+this.value})">${[6,12,24,36,48,72,168].map(h=>`<option value="${h}" ${d.look===h?'selected':''}>${h} hours</option>`).join('')}</select></div></div></section>
+  ${saveBar('rub',ok,why)}`}
+function render(){
+  document.getElementById('nav').innerHTML=pages.map(([k,l])=>`<button class="${S.page===k?'on':''}" onclick="go('${k}')">${l}${k==='drafts'?`<span class="count">${S.drafts.filter(d=>d.tab==='review').length}</span>`:''}</button>`).join('');
+  document.getElementById('view').innerHTML={welcome:viewWelcome,drafts:viewDrafts,rejected:viewRejected,sources:viewSources,runs:viewRuns,rubric:viewRubric}[S.page]();
+  document.querySelector('.shell').classList.toggle('solo',S.page==='welcome');
+}
+render();
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { notifyNewDrafts } from "./telegram";
 import { loadRubric } from "./config";
 import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterContacts, readSite, verifyWebsite, type Contact } from "./contacts";
 import { decide } from "./decide";
@@ -84,7 +85,7 @@ export async function startRun(db: SupabaseClient, trigger: "cron" | "manual"): 
   }
   const steps: StepRow[] = STEPS.map((s) => ({ ...s, state: "pending", detail: "" }));
   steps[0]!.state = "done";
-  steps[0]!.detail = `lease ${LEASE_SECONDS}s, holder ${holder.slice(0, 12)}`;
+  steps[0]!.detail = `lease ${LEASE_SECONDS}s`;
   const { data } = await db.from("runs").insert({ status: "ok", counts: { ...FRESH_COUNTS, trigger, holder, started_ms: Date.now(), queue: [], draft_done: [], stalls: 0, steps } }).select("id").single();
   return { runId: data?.id ?? null, status: "started" };
 }
@@ -254,10 +255,13 @@ export async function runStage(db: SupabaseClient, runId: number, stage: Stage):
       candidates = data ?? [];
     }
     candidates.sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
+    // "Articles per run" (Run settings). Newest first; the rest stay unread and a later scheduled run picks them up.
+    const leftOver = Math.max(0, candidates.length - rubric.maxArticlesPerRun);
+    candidates = candidates.slice(0, rubric.maxArticlesPerRun);
     c.queue = candidates.map((a) => a.id);
     c.candidates = candidates.length;
     await step("filter", `${c.fetched} articles in the feeds; ${candidates.length} to read (${readAll ? "all of them" : "new since the last run"}). Judged on the rubric, ${rubric.lookbackHours == null ? "no time window" : `${rubric.lookbackHours}h window`}`);
-    await step("memory", `${candidates.length} articles queued. Each stage runs as its own function, so there is no cap on how many are read`);
+    await step("memory", `${candidates.length} articles queued${leftOver ? `, ${leftOver} more wait for a later run (articles-per-run setting is ${rubric.maxArticlesPerRun})` : ". Each stage runs as its own function, so reading is not limited by the 300 s function time"}`);
     await flush(true);
     return "read";
   }
@@ -525,6 +529,7 @@ export async function driveStage(db: SupabaseClient, runId: number, stage: Stage
   try {
     const next = await runStage(db, runId, stage);
     if (next && !(await triggerStage(origin, runId, next))) await failRun(db, runId, `could not start the ${next} stage`);
+    if (!next) await notifyNewDrafts(db, runId, origin); // Telegram reminder; never throws
   } catch (e) {
     await failRun(db, runId, `${stage} stage failed: ${msg(e)}`);
   }
