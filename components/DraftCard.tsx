@@ -1,7 +1,7 @@
 import { WithPlaceholders } from "./Placeholders";
 import MoveButtons from "./MoveButtons";
 import { Card, Pub, StatusPill } from "./ui";
-import { gmailLink } from "@/lib/gmail";
+import OpenGmailButton from "./OpenGmailButton";
 import type { draftsData } from "@/lib/queries";
 import { tabOf } from "@/lib/queries";
 import { ago } from "@/lib/time";
@@ -73,7 +73,7 @@ export default function DraftCard({ d }: { d: Draft }) {
         </details>
 
         <div className="actions">
-          <a className="btn primary" href={gmailLink(d.gmail)} target="_blank" rel="noreferrer noopener" aria-disabled={!d.gmail}>Open Gmail draft</a>
+          <OpenGmailButton id={d.id} canRecreate={!failed && !!d.body} />
           <MoveButtons id={d.id} tab={tabOf(d.status)} movable={["new", "approved", "done", "sent", "skipped"].includes(d.status)} />
         </div>
       </article>

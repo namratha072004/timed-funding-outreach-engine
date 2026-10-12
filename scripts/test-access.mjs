@@ -16,6 +16,7 @@ let r = await call("/"); let html = await r.text();
 t("welcome page greets Rohit", /Rohit\./.test(html) && /Let’s get started|Let&#x27;s get started|Let’s get started/.test(html), "greeting and button present");
 r = await call("/unlock"); t("the old unlock page is gone", r.status === 404, `HTTP ${r.status}`);
 r = await call("/rubric"); t("/rubric now redirects to Settings", r.status >= 300 && r.status < 400 && /\/settings/.test(r.headers.get("location") ?? ""), `HTTP ${r.status}`);
+r = await call("/api/drafts/99999999/gmail"); t("the Gmail link lookup is readable without the code (an unknown id gives 404, not 401)", r.status === 404, `HTTP ${r.status}`);
 r = await call("/api/run/status"); t("run progress is readable without the code", r.status === 200, `HTTP ${r.status}`);
 const status = await r.json(); t("run progress carries no lock holder or internals", !JSON.stringify(status).match(/holder|started_ms|"queue"/), "keys checked");
 
@@ -23,7 +24,7 @@ const status = await r.json(); t("run progress carries no lock holder or interna
 const writes = [
   ["POST", "/api/run"], ["GET", "/api/run"], ["POST", "/api/run/stage"],
   ["POST", "/api/drafts/1/status"], ["POST", "/api/rejects/1/overrule"], ["PUT", "/api/settings/rubric"], ["PUT", "/api/settings/run"],
-  ["POST", "/api/telegram/connect"], ["DELETE", "/api/telegram/connect"], ["POST", "/api/telegram/test"], ["PUT", "/api/telegram/enabled"], ["GET", "/api/account"],
+  ["POST", "/api/telegram/connect"], ["DELETE", "/api/telegram/connect"], ["POST", "/api/telegram/test"], ["PUT", "/api/telegram/enabled"], ["GET", "/api/account"], ["POST", "/api/drafts/1/recreate"],
 ];
 for (const [m, p] of writes) { r = await call(p, { method: m, headers: json, body: m === "GET" ? undefined : "{}" }); t(`${m} ${p} without the code`, r.status === 401, `HTTP ${r.status}`); }
 r = await call("/api/run", { headers: { authorization: "Bearer wrong" } }); t("GET /api/run with a wrong token", r.status === 401, `HTTP ${r.status}`);

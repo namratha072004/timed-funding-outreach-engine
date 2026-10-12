@@ -66,16 +66,19 @@ describe("public read, protected writes (first gate: proxy)", () => {
   it("lets reads and the unlock call through with no credentials", async () => {
     expect(passes(await proxy(req("GET", "/api/run/status")))).toBe(true);
     expect(passes(await proxy(req("POST", "/api/unlock")))).toBe(true);
+    expect(passes(await proxy(req("GET", "/api/drafts/12/gmail")))).toBe(true);
+    expect((await proxy(req("POST", "/api/drafts/12/gmail"))).status).toBe(401);
+    expect((await proxy(req("GET", "/api/drafts/12/recreate"))).status).toBe(401);
   });
   it("blocks every write without the cookie", async () => {
-    for (const [m, p] of [["POST", "/api/run"], ["GET", "/api/run"], ["POST", "/api/drafts/1/status"], ["POST", "/api/rejects/1/overrule"], ["PUT", "/api/settings/rubric"], ["PUT", "/api/settings/run"], ["POST", "/api/run/stage"], ["POST", "/api/telegram/connect"], ["DELETE", "/api/telegram/connect"], ["POST", "/api/telegram/test"], ["PUT", "/api/telegram/enabled"], ["GET", "/api/account"]] as const) {
+    for (const [m, p] of [["POST", "/api/run"], ["GET", "/api/run"], ["POST", "/api/drafts/1/status"], ["POST", "/api/rejects/1/overrule"], ["PUT", "/api/settings/rubric"], ["PUT", "/api/settings/run"], ["POST", "/api/run/stage"], ["POST", "/api/telegram/connect"], ["DELETE", "/api/telegram/connect"], ["POST", "/api/telegram/test"], ["PUT", "/api/telegram/enabled"], ["GET", "/api/account"], ["POST", "/api/drafts/1/recreate"]] as const) {
       const r = await proxy(req(m, p));
       expect(r.status, `${m} ${p}`).toBe(401);
     }
   });
   it("lets writes through with the cookie", async () => {
     const h = { cookie: await cookie() };
-    for (const [m, p] of [["POST", "/api/run"], ["POST", "/api/drafts/1/status"], ["POST", "/api/rejects/1/overrule"], ["PUT", "/api/settings/rubric"], ["PUT", "/api/settings/run"], ["POST", "/api/telegram/connect"], ["GET", "/api/account"]] as const) {
+    for (const [m, p] of [["POST", "/api/run"], ["POST", "/api/drafts/1/status"], ["POST", "/api/rejects/1/overrule"], ["PUT", "/api/settings/rubric"], ["PUT", "/api/settings/run"], ["POST", "/api/telegram/connect"], ["GET", "/api/account"], ["POST", "/api/drafts/1/recreate"]] as const) {
       expect(passes(await proxy(req(m, p, h))), `${m} ${p}`).toBe(true);
     }
   });
