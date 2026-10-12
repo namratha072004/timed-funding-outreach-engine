@@ -1,5 +1,6 @@
 import { serverDb } from "./supabase";
 import { lockState } from "./lock";
+import { hunterAccount } from "./contacts";
 
 export const IST = "Asia/Kolkata";
 export const fmtTime = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { timeZone: IST, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : "-");
@@ -54,3 +55,34 @@ export function avgDelay(sourceDelays: Record<string, { avg_hours: number; n: nu
 }
 
 export const score = (s: any): number | null => (s?.score ?? s?.marks?.score_if_scored ?? null);
+
+export type FunnelData = { feeds: number; articlesRead: number; announcements: number; startups: number; rejected: number; fit: number; drafts: number; verified: number; unverified: number; none: number };
+
+/** Live totals straight from the tables, so the picture never goes blank after a run that found nothing new. */
+export async function funnelData(): Promise<FunnelData> {
+  const db = serverDb();
+  const n = async (table: string, f?: (q: any) => any): Promise<number> => {
+    let q: any = db.from(table).select("id", { count: "exact", head: true });
+    if (f) q = f(q);
+    return (await q).count ?? 0;
+  };
+  const real = (q: any) => q.neq("status", "draft_failed");
+  const [feeds, articlesRead, announcements, startups, rejected, drafts, verified, unverified, none] = await Promise.all([
+    n("feeds", (q) => q.eq("active", true)),
+    n("articles", (q) => q.eq("status", "processed")),
+    n("articles", (q) => q.not("startup_id", "is", null)),
+    n("startups"),
+    n("startups", (q) => q.eq("status", "rejected")),
+    n("drafts", real),
+    n("drafts", (q) => real(q).eq("email_source", "verified")),
+    n("drafts", (q) => real(q).eq("email_source", "unverified")),
+    n("drafts", (q) => real(q).eq("email_source", "none")),
+  ]);
+  return { feeds, articlesRead, announcements, startups, rejected, fit: startups - rejected, drafts, verified, unverified, none };
+}
+
+/** Hunter's own usage figure (covers lookups made outside runs too); falls back to the count kept per run. */
+export async function hunterUsage(fallbackUsed: number): Promise<{ used: number; total: number }> {
+  const acct = await Promise.race([hunterAccount().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
+  return acct ? { used: acct.used, total: acct.available } : { used: fallbackUsed, total: 50 };
+}

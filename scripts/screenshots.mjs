@@ -12,7 +12,7 @@ await page.screenshot({ path: `${out}/unlock.png` });
 await page.type("#code", process.env.ACCESS_CODE);
 await Promise.all([page.waitForNavigation(), page.click("button[type=submit]")]);
 const shots = { review: "/", rejected: "/rejected", runs: "/runs", rubric: "/rubric" };
-for (const [n, p] of Object.entries(shots)) { await page.goto(base + p, { waitUntil: "networkidle0" }); await page.screenshot({ path: `${out}/${n}.png` }); }
+for (const [n, p] of Object.entries(shots)) { await page.goto(base + p, { waitUntil: "networkidle0" }); await new Promise((r) => setTimeout(r, 1200)); await page.screenshot({ path: `${out}/${n}.png` }); }
 const link = await page.goto(base + "/", { waitUntil: "networkidle0" }).then(() => page.$$eval("a[href^='/drafts/']", (a) => a[0]?.getAttribute("href")));
 if (link) { await page.goto(base + link, { waitUntil: "networkidle0" }); await page.screenshot({ path: `${out}/draft.png`, fullPage: true }); }
 await page.setViewport({ width: 390, height: 800 });

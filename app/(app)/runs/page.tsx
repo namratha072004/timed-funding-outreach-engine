@@ -1,6 +1,6 @@
 import RunNow from "@/components/RunNow";
 import { hunterAccount } from "@/lib/contacts";
-import { avgDelay, fmtTime, reviewData } from "@/lib/queries";
+import { avgDelay, fmtTime, hunterUsage, reviewData } from "@/lib/queries";
 import { lockState } from "@/lib/lock";
 import { serverDb } from "@/lib/supabase";
 
@@ -14,7 +14,8 @@ async function check(name: string, fn: () => Promise<boolean>) {
 
 export default async function Runs() {
   const db = serverDb();
-  const { runs, hunterUsed } = await reviewData();
+  const { runs, hunterUsed: hunterRuns } = await reviewData();
+  const hunter = await hunterUsage(hunterRuns);
   const [lock, services] = await Promise.all([
     lockState(db),
     Promise.all([
@@ -34,7 +35,7 @@ export default async function Runs() {
   return (
     <>
       <div className="head">
-        <div><h1 className="headline">Runs &amp; health</h1><p className="sub">The daily run is at 09:00 IST. Hobby plan timing can slip by up to an hour.</p></div>
+        <div><h1 className="headline">Runs &amp; health</h1><p className="sub">Runs every 3 hours from GitHub Actions, or press Run now to read every article.</p></div>
         <RunNow />
       </div>
       <div className="grid3" style={{ marginBottom: 18 }}>
@@ -47,8 +48,8 @@ export default async function Runs() {
         </div>
         <div className="card">
           <h4>Hunter lookups this month</h4>
-          <div className="big">{hunterUsed} <span className="meta">of 50 free</span></div>
-          <div className="bar" role="progressbar" aria-valuenow={hunterUsed} aria-valuemin={0} aria-valuemax={50}><i style={{ width: `${Math.min(100, (hunterUsed / 50) * 100)}%` }} /></div>
+          <div className="big">{hunter.used} <span className="meta">of {hunter.total} free</span></div>
+          <div className="bar" role="progressbar" aria-valuenow={hunter.used} aria-valuemin={0} aria-valuemax={hunter.total}><i style={{ width: `${Math.min(100, (hunter.used / hunter.total) * 100)}%` }} /></div>
         </div>
         <div className="card">
           <h4>News to first seen</h4>
@@ -61,7 +62,7 @@ export default async function Runs() {
       ) : (
         <div className="tablewrap">
           <table>
-            <thead><tr><th>Run (IST)</th><th>Articles</th><th>New startups</th><th>Drafted</th><th>Rejected</th><th>Duplicates skipped</th><th>Errors</th><th>Took</th></tr></thead>
+            <thead><tr><th>Run (IST)</th><th>Articles read</th><th>Funding news</th><th>New startups</th><th>Fit</th><th>Rejected</th><th>Repeats skipped</th><th>Emails: Hunter · site · none</th><th>Errors</th><th>Took</th></tr></thead>
             <tbody>
               {runs.slice(0, 20).map((r: any) => {
                 const c = r.counts ?? {};
@@ -69,8 +70,11 @@ export default async function Runs() {
                 return (
                   <tr key={r.id}>
                     <td>{fmtTime(r.started_at)} <span className="meta">{c.trigger ?? ""}</span></td>
-                    {r.status === "skipped" ? <td colSpan={7}><span className="pill check">Skipped: already running</span></td> : <>
-                      <td>{c.fetched ?? "-"}</td><td>{c.startups_new ?? "-"}</td><td>{c.drafted ?? "-"}</td><td>{c.rejected ?? "-"}</td><td>{c.duplicates ?? "-"}</td>
+                    {r.status === "skipped" ? <td colSpan={9}><span className="pill check">Skipped: already running</span></td> : <>
+                      <td>{c.read ?? "-"}{c.candidates != null && c.fetched != null ? <span className="meta"> of {c.fetched}</span> : null}</td>
+                      <td>{c.read != null ? Math.max(0, c.read - (c.not_announcements ?? 0)) : "-"}</td>
+                      <td>{c.startups_new ?? "-"}</td><td>{c.passed ?? "-"}</td><td>{c.rejected ?? "-"}</td><td>{c.duplicates ?? "-"}</td>
+                      <td>{c.emails_verified ?? 0} · {c.emails_unverified ?? 0} · {c.emails_none ?? 0}</td>
                       <td>{unfinished ? <span className="pill check">did not finish</span> : c.errors ? <span className="pill check" title={(r.errors ?? []).join("\n")}>{c.errors} errors</span> : 0}</td>
                       <td>{c.duration_ms ? `${Math.round(c.duration_ms / 1000)} s` : "-"}</td>
                     </>}
