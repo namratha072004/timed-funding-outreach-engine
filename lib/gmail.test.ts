@@ -3,9 +3,9 @@ import { gmailDraftUrl, gmailLink, resolveGmailDraft } from "./gmail";
 
 describe("Gmail links", () => {
   it("names the account and the message, so it opens that email in the right account", () => {
-    expect(gmailDraftUrl("rohit@example.com", "18f3a9")).toBe("https://mail.google.com/mail/u/rohit%40example.com/#drafts?compose=18f3a9");
+    expect(gmailDraftUrl("rohit@example.com", "18f3a9")).toBe("https://mail.google.com/mail/?authuser=rohit%40example.com#drafts?compose=18f3a9");
     expect(gmailDraftUrl(null, "18f3a9")).toBe("https://mail.google.com/mail/u/0/#drafts?compose=18f3a9");
-    expect(gmailDraftUrl("rohit@example.com", null)).toBe("https://mail.google.com/mail/u/rohit%40example.com/#drafts");
+    expect(gmailDraftUrl("rohit@example.com", null)).toBe("https://mail.google.com/mail/?authuser=rohit%40example.com#drafts");
     expect(gmailLink("r1:m2")).toContain("compose=m2");
     expect(gmailLink(null)).toBe("https://mail.google.com/mail/u/0/#drafts");
   });

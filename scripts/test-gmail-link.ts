@@ -10,7 +10,7 @@ const stored = await createGmailDraft({ to: null, subject: "[link test] safe to 
 try {
   const a = await resolveGmailDraft(stored);
   t("a new draft is found", a.state === "ok", a.state);
-  t("the link names the Gmail account and the message", a.state === "ok" && /^https:\/\/mail\.google\.com\/mail\/u\/[^/]+\/#drafts\?compose=[0-9a-f]+$/.test(a.url) && !a.url.includes("/u/0/"), a.state === "ok" ? a.url.replace(/\/u\/[^/]+\//, "/u/<account>/") : "-");
+  t("the link names the Gmail account and the message", a.state === "ok" && /^https:\/\/mail\.google\.com\/mail\/\?authuser=[^#]+#drafts\?compose=[0-9a-f]+$/.test(a.url), a.state === "ok" ? a.url.replace(/authuser=[^#]+/, "authuser=<account>") : "-");
   await updateGmailDraft(stored, { to: null, subject: "[link test] edited", body: "edited" });
   const b = await resolveGmailDraft(stored);
   t("after an edit the saved message id is stale, and the lookup returns the new one", a.state === "ok" && b.state === "ok" && a.stored !== b.stored, a.state === "ok" && b.state === "ok" ? `${a.stored.split(":")[1]} -> ${b.stored.split(":")[1]}` : "-");

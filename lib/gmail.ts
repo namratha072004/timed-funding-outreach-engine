@@ -57,11 +57,12 @@ export async function createGmailDraft(o: { to: string | null; subject: string; 
 
 /**
  * Gmail link to one draft. The message id must be the draft's CURRENT one (updating a draft gives it a new id), and the
- * account is named in the URL so it opens in the right Google account, not whichever one the browser has as "0".
+ * account is named with the `authuser` parameter so it opens in the right Google account, not whichever one the browser has as "0".
  * Pure.
  */
 export const gmailDraftUrl = (account: string | null, messageId: string | null): string => {
-  const base = `https://mail.google.com/mail/u/${account ? encodeURIComponent(account) : "0"}/`;
+  // Google's own `authuser` parameter picks the account (an address in the URL path made Gmail answer 404)
+  const base = account ? `https://mail.google.com/mail/?authuser=${encodeURIComponent(account)}` : "https://mail.google.com/mail/u/0/";
   return messageId ? `${base}#drafts?compose=${messageId}` : `${base}#drafts`;
 };
 
