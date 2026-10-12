@@ -1,0 +1,10 @@
+[
+  { "name": "GLAAS", "reference": "about 100, pass", "url": "https://startuptalky.com/news/glaas-secures-5m-investment-devesh-sachdev-cofounder-md/" },
+  { "name": "Zaperon", "reference": "about 65, pass", "url": "https://digitalterminal.in/startup/zaperon-secures-7-crore-seed-funding-to-expand-agentic-ai-cybersecurity-capabilities" },
+  { "name": "Aignosis", "reference": "about 65, pass", "url": "https://biospectrumindia.com/news/16/28591/aignosis-raises-rs-4-cr-in-seed-round-to-scale-ai-assisted-autism-and-developmental-screening-across-india.html" },
+  { "name": "Unveilr AI", "reference": "about 65, pass", "url": "https://startuptalky.com/news/unveilr-ai-raises-pre-seed-from-ajvc-at-16-7-cr-valuation/" },
+  { "name": "Gharbar", "reference": "about 65, pass", "url": "https://legalsuvidha.com/latest-updates/gharbar-secures-pre-seed-funding-to-boost-student-living-platform-220926" },
+  { "name": "OFF/BEAT", "reference": "about 65, pass", "url": "https://inc42.com/buzz/boat-cofounder-aman-guptas-new-venture-off-beat-raises-%e2%82%b9100-cr/" },
+  { "name": "Helium Smart Air", "reference": "about 55, reject (below pass mark)", "url": "https://www.indianretailer.com/news/funding-alert-d2c-ac-startup-helium-smart-air-secures-2-mn-scale-operations" },
+  { "name": "Bangalore Watch Company", "reference": "reject by sector rule", "url": "https://parsers.vc/news/261004-indian-luxury-watches--bangalore-watch/" }
+]

@@ -1,0 +1,119 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Funding Outreach: app preview</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--line:#e1e5f0;--ink:#16203d;--mut:#66708d;--navy:#0f1d44;--blue:#2c6ad8;--green:#1c9a56;--amber:#c98a10;--red:#c93c3c;--gold:#f5a623}
+*{box-sizing:border-box;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{background:var(--navy);color:#fff;display:flex;align-items:center;gap:6px;padding:0 24px;height:58px;position:sticky;top:0;z-index:5}
+header .logo{font-weight:800;letter-spacing:.2px;margin-right:22px}header .logo i{color:var(--gold);font-style:normal}
+.tab{color:#b9c3e2;padding:0 14px;height:58px;display:flex;align-items:center;cursor:pointer;border-bottom:3px solid transparent;font-weight:600;font-size:13.5px}
+.tab:hover{color:#fff}.tab.on{color:#fff;border-color:var(--gold)}
+.tab .n{background:#ffffff22;border-radius:20px;padding:1px 8px;margin-left:7px;font-size:11.5px}
+header .sp{flex:1}header .last{color:#b9c3e2;font-size:12.5px;margin-right:14px}
+.btn{font:inherit;font-size:13px;font-weight:650;padding:8px 14px;border-radius:8px;border:1px solid #cfd5e8;background:#fff;color:var(--ink);cursor:pointer}
+.btn:hover{background:#f0f3fb}.btn.p{background:var(--blue);border-color:var(--blue);color:#fff}.btn.g{background:var(--green);border-color:var(--green);color:#fff}
+.btn.run{background:var(--gold);border-color:var(--gold);color:#2b1d00}.btn.sm{padding:5px 10px;font-size:12px}
+main{max-width:1320px;margin:0 auto;padding:20px 24px 60px}
+.banner{background:#fff4d6;border:1px solid #f0dc9f;color:#835b00;border-radius:10px;padding:8px 14px;font-size:12.5px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.kpi b{font-size:24px;display:block}.kpi span{color:var(--mut);font-size:12px}
+.split{display:grid;grid-template-columns:400px 1fr;gap:16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid #edf0f8;cursor:pointer;align-items:center}
+.item:hover{background:#f8f9fd}.item.sel{background:#edf3ff;box-shadow:inset 4px 0 0 var(--blue)}
+.ring{--c:var(--blue);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none;background:conic-gradient(var(--c) calc(var(--p)*1%),#e6e9f3 0);position:relative}
+.ring::after{content:attr(data-s);position:absolute;inset:4px;background:#fff;border-radius:50%;display:grid;place-items:center}
+.item .t{font-weight:700}.item .m{color:var(--mut);font-size:12.2px;margin:2px 0 6px}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin:0 4px 3px 0}
+.ok{background:#d8f1e3;color:#12683a}.warn{background:#fdecc9;color:#8a5a00}.bad{background:#fbdede;color:#9a2424}.info{background:#dde8fc;color:#244c9f}.gray{background:#e9ecf5;color:#4b5573}
+.pv{padding:22px 26px}.pv h2{font-size:21px}.sub{color:var(--mut);font-size:12.5px;margin-top:3px}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mail{border:1px solid var(--line);border-radius:12px;margin:16px 0;background:#fcfcff}
+.mail .h{padding:11px 16px;border-bottom:1px solid var(--line);font-size:12.8px;color:var(--mut);line-height:1.7}
+.mail .b{padding:16px 18px;line-height:1.6;white-space:pre-wrap}.ph{background:#fff1c9;border-radius:4px;padding:0 3px;font-weight:600}
+.flag{background:#eef2fb;border-left:4px solid var(--blue);padding:9px 12px;border-radius:6px;font-size:12.8px;margin-bottom:8px}
+.flag.w{border-color:var(--amber);background:#fff7e2}
+.why{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+.why div{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:12px;background:#fff}.why b{display:block;margin-bottom:3px;font-size:12.3px}
+.lbl{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-top:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#f0f2f9;color:#4b5573;font-size:12px;padding:10px 14px}td{padding:12px 14px;border-top:1px solid #edf0f8;vertical-align:top}
+.hide{display:none!important}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h4{font-size:14px;margin-bottom:4px}.big{font-size:26px;font-weight:800}.bar{height:8px;background:#e6e9f3;border-radius:6px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--blue)}
+.modal{position:fixed;inset:0;background:#0f1d4488;display:grid;place-items:center;z-index:20}.modal>div{background:#fff;border-radius:16px;width:min(620px,92vw);padding:22px 26px;max-height:88vh;overflow:auto}
+.step{display:flex;gap:10px;align-items:flex-start;padding:7px 0;color:#9aa3bd;font-size:13.5px}.step.on{color:var(--ink)}.step .d{width:20px;height:20px;border-radius:50%;border:2px solid #cfd5e8;flex:none;display:grid;place-items:center;font-size:11px;font-weight:800}
+.step.on .d{background:var(--green);border-color:var(--green);color:#fff}.step small{display:block;color:var(--mut);font-size:12px}
+.gm{background:#fff;border:1px solid #d8dbe6;border-radius:10px;overflow:hidden;font-family:Arial,sans-serif;font-size:13px}.gm .t{background:#f2f6fc;padding:8px 14px;font-weight:600}.gm .r{padding:8px 14px;border-bottom:1px solid #eee;color:#444}.gm .b{padding:14px;white-space:pre-wrap;line-height:1.55}
+.tour{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}.tour div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12.3px}.tour b{display:block;font-size:12px;color:var(--blue);margin-bottom:3px}
+@media(max-width:1000px){.split{grid-template-columns:1fr}.kpis,.cards,.why,.tour{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<header><div class="logo">Funding<i>Outreach</i></div>
+<div class="tab on" data-t="drafts">Drafts<span class="n" id="nd">4</span></div><div class="tab" data-t="rej">Rejected<span class="n">3</span></div><div class="tab" data-t="runs">Runs &amp; health</div><div class="tab" data-t="rub">Rubric</div>
+<div class="sp"></div><span class="last">Last run: today 09:00 · 3 drafts</span><button class="btn run" onclick="runNow()">Run now</button></header>
+<main>
+<div class="banner"><b>Preview, not the real app.</b> Sample data with fictional startups so you can decide the design. Click around: pick a draft, open the Gmail draft, press <b>Run now</b>, overrule a reject.</div>
+
+<section id="drafts">
+ <div class="tour"><div><b>09:00 · Cron fires</b>Run starts by itself</div><div><b>Run finds news</b>RSS feeds, last 24 h</div><div><b>Code decides</b>Only fits are kept</div><div><b>Drafts appear here</b>And in Gmail drafts</div><div><b>Rohit reviews</b>Edit, send, or skip</div></div>
+ <div class="kpis"><div class="kpi"><b>142</b><span>articles read</span></div><div class="kpi"><b>6</b><span>new startups</span></div><div class="kpi"><b id="kd">4</b><span>drafts to review</span></div><div class="kpi"><b>3</b><span>rejected (separate tab)</span></div><div class="kpi"><b>3.2 h</b><span>avg news to first seen</span></div></div>
+ <div class="split"><div class="panel" id="list"></div><div class="panel pv" id="pv"></div></div>
+</section>
+
+<section id="rej" class="hide"><div class="panel"><table><thead><tr><th>Startup</th><th>Why rejected</th><th>Evidence</th><th>Score</th><th></th></tr></thead><tbody id="rejb"></tbody></table></div><p class="sub" style="margin-top:10px">Rohit never sees these in Drafts. This tab is for audit only, and he can overrule any reject.</p></section>
+
+<section id="runs" class="hide">
+ <div class="cards" style="margin-bottom:16px">
+  <div class="card"><h4>Services</h4><div style="margin-top:8px"><span class="chip ok">Gemini OK</span><span class="chip ok">Supabase OK</span><span class="chip ok">Gmail OK</span><span class="chip ok">Hunter OK</span></div><div class="sub" style="margin-top:8px">Run lock: free</div></div>
+  <div class="card"><h4>Hunter lookups this month</h4><div class="big">6 <span class="sub">of 50 free</span></div><div class="bar"><i style="width:12%"></i></div></div>
+  <div class="card"><h4>News to first seen (delay)</h4><div class="big">3.2 h</div><div class="sub">Inc42 2.1 h · YourStory 3.0 h · Entrackr 4.4 h · ET 3.6 h</div></div></div>
+ <div class="panel"><table><thead><tr><th>Run</th><th>Articles</th><th>New startups</th><th>Drafted</th><th>Rejected</th><th>Duplicates skipped</th><th>Errors</th><th>Took</th></tr></thead><tbody>
+ <tr><td>Today 09:00</td><td>142</td><td>6</td><td>3</td><td>3</td><td>2</td><td>0</td><td>48 s</td></tr>
+ <tr><td>Yesterday 09:00</td><td>131</td><td>6</td><td>2</td><td>4</td><td>0</td><td>0</td><td>41 s</td></tr>
+ <tr><td>2 days ago 09:00</td><td>118</td><td>5</td><td>2</td><td>2</td><td>1</td><td><span class="chip warn">1 Gemini retry</span></td><td>57 s</td></tr></tbody></table></div></section>
+
+<section id="rub" class="hide">
+ <div class="cards" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
+  <div class="card"><h4>Sector fit</h4><div class="big">30</div><div class="sub">Wrong sector = reject</div></div><div class="card"><h4>Geography fit</h4><div class="big">15</div><div class="sub">Outside India = reject</div></div><div class="card"><h4>Product / traction</h4><div class="big">25</div><div class="sub">Needs evidence of use</div></div><div class="card"><h4>Team signal</h4><div class="big">20</div><div class="sub">Named + background</div></div><div class="card"><h4>Idea clarity</h4><div class="big">10</div><div class="sub">Stated plainly</div></div></div>
+ <div class="cards"><div class="card"><h4>Gates and settings</h4><div class="sub" style="line-height:1.8">Pass mark: <b>65</b><br>Lookback: <b>24 hours</b><br>Stages: <b>pre-seed, seed</b><br>Geographies: <b>India</b><br>Sectors: <b>AI, SaaS, fintech, healthtech, consumer / D2C</b></div></div>
+ <div class="card"><h4>Email wording</h4><div class="sub" style="line-height:1.8">Sender: <span class="ph">[SENDER NAME]</span><br>Accelerator: <span class="ph">[ACCELERATOR NAME]</span><br>Program: <span class="ph">[PROGRAM DESCRIPTION]</span><br>Ask: <span class="ph">[CALL TO ACTION]</span></div></div>
+ <div class="card"><h4>How Rohit edits this</h4><div class="sub" style="line-height:1.6">In Supabase, tables <b>rubric_settings</b>, <b>rubric_criteria</b>, <b>outreach_settings</b>. Change a number, save. The next run uses it, with no code change. Each change bumps the rubric version.</div></div></div></section>
+</main>
+<div id="modal" class="modal hide"><div id="mbox"></div></div>
+
+<script>
+const D=[
+{id:1,n:'Lumen Ledger',sec:'Fintech',loc:'Bengaluru',st:'Seed',amt:'$2.1M',sc:85,ago:'3 hours ago',src:'Inc42',site:'lumenledger.example',to:'hello@lumenledger.example',em:'ok',status:'new',
+ sub:'Congratulations on the seed round, Lumen Ledger',body:'Hi Meera,\n\nCongratulations on closing your $2.1M seed round. The way Lumen Ledger helps small shops track credit, starting with first-time lenders, stood out to us.\n\nI am [SENDER NAME] at [ACCELERATOR NAME]. [PROGRAM DESCRIPTION]\n\n[CALL TO ACTION]\n\nWarm regards,\n[SENDER NAME]',
+ why:[['Sector','yes','"fintech for small shops"'],['Geography','yes','"Bengaluru-based"'],['Traction','yes','"12,000 merchants"'],['Team','partial','founders named, no background'],['Idea','yes','clear']],flags:[['Inferred (not in the article): no technical co-founder is named.',1]]},
+{id:2,n:'Parse Labs',sec:'AI',loc:'Hyderabad',st:'Pre-seed',amt:'$1.0M',sc:75,ago:'5 hours ago',src:'YourStory',site:'parselabs.example',to:'',em:'none',status:'new',
+ sub:'Congratulations on the pre-seed round, Parse Labs',body:'Hi Arjun,\n\nCongratulations on your $1.0M pre-seed round. Using AI to read shipping documents for logistics firms is a problem many teams in our network know well.\n\nI am [SENDER NAME] at [ACCELERATOR NAME]. [PROGRAM DESCRIPTION]\n\n[CALL TO ACTION]\n\nWarm regards,\n[SENDER NAME]',
+ why:[['Sector','yes','"AI for logistics"'],['Geography','yes','"Hyderabad"'],['Traction','partial?','"pilots with 3 firms"'],['Team','yes','ex-logistics founders named'],['Idea','yes','clear']],flags:[['No email found (Hunter and contact page both empty). The Gmail draft is created with To left blank.',0]]},
+{id:3,n:'Kaveri Health',sec:'Healthtech',loc:'Pune',st:'Pre-seed',amt:'$0.8M',sc:70,ago:'9 hours ago',src:'Entrackr',site:'kaverihealth.example',to:'care@kaverihealth.example',em:'unv',status:'new',
+ sub:'Congratulations on the pre-seed round, Kaveri Health',body:'Hi there,\n\nCongratulations on your $0.8M pre-seed round. Clinic booking for tier-2 cities is a gap we hear about often.\n\nI am [SENDER NAME] at [ACCELERATOR NAME]. [PROGRAM DESCRIPTION]\n\n[CALL TO ACTION]\n\nWarm regards,\n[SENDER NAME]',
+ why:[['Sector','yes','"healthtech"'],['Geography','yes','"Pune"'],['Traction','yes','"40 clinics live"'],['Team','no','no founder named'],['Idea','yes','clear']],flags:[['Email came from the startup contact page, not Hunter. Unverified, so To is left blank in the Gmail draft.',0]]},
+{id:4,n:'Tiffin Loop',sec:'Foodtech / D2C',loc:'Chennai',st:'Seed',amt:'$1.5M',sc:65,ago:'27 hours ago',src:'ET Entrepreneur',site:'tiffinloop.example',to:'founders@tiffinloop.example',em:'ok',status:'sent',
+ sub:'Congratulations on the seed round, Tiffin Loop',body:'Hi Karthik,\n\nCongratulations on your $1.5M seed round. A subscription model for home-style tiffins is a smart way to build repeat orders.\n\nI am [SENDER NAME] at [ACCELERATOR NAME]. [PROGRAM DESCRIPTION]\n\n[CALL TO ACTION]\n\nWarm regards,\n[SENDER NAME]',
+ why:[['Sector','yes','"foodtech D2C"'],['Geography','yes','"Chennai"'],['Traction','yes','"6,000 subscribers"'],['Team','partial','founder named only'],['Idea','no','buzzword-heavy']],flags:[]}];
+const R=[['Harbor Watches','Sector: not in thesis','"luxury analog watches" (gift and luxury goods)','n/a (hard rule)'],['Delta Pay','Stage: Series A','"raised $9M Series A"','n/a (stage gate)'],['Nordic Notes','Geography: outside India','"based in Stockholm"','n/a (hard rule)']];
+let sel=1;const $=s=>document.querySelector(s);
+const col=s=>s>=80?'var(--green)':s>=70?'var(--blue)':'var(--amber)';
+const emChip=d=>d.em=='ok'?'<span class="chip ok">verified email</span>':d.em=='unv'?'<span class="chip warn">unverified (contact page)</span>':'<span class="chip bad">no email found</span>';
+const stChip=d=>d.status=='sent'?'<span class="chip ok">sent</span>':d.status=='skip'?'<span class="chip gray">skipped</span>':'<span class="chip info">to review</span>';
+function ph(t){return t.replace(/\[[A-Z ]+\]/g,m=>`<span class="ph">${m}</span>`)}
+function list(){$('#list').innerHTML=D.map(d=>`<div class="item ${d.id==sel?'sel':''}" onclick="sel=${d.id};list();pv()"><div class="ring" data-s="${d.sc}" style="--p:${d.sc};--c:${col(d.sc)}"></div><div><div class="t">${d.n}</div><div class="m">${d.sec} · ${d.loc} · ${d.st} · ${d.amt}</div>${emChip(d)}${stChip(d)}</div></div>`).join('');
+ const n=D.filter(d=>d.status=='new').length;$('#nd').textContent=n;$('#kd').textContent=n}
+function pv(){const d=D.find(x=>x.id==sel);
+ $('#pv').innerHTML=`<div class="row"><div><h2>${d.n}</h2><div class="sub">Announced ${d.ago} · Source: ${d.src} · ${d.site}</div></div><div><button class="btn" onclick="setS('skip')">Skip</button> <button class="btn g" onclick="setS('sent')">Mark sent</button> <button class="btn p" onclick="gmail()">Open Gmail draft</button></div></div>
+ ${d.flags.map(f=>`<div class="flag ${f[1]?'':'w'}" style="margin-top:12px">${f[0]}</div>`).join('')}
+ <div class="mail"><div class="h"><b>To:</b> ${d.em=='ok'?d.to+' <span class="chip ok">Hunter-verified</span>':'<i>(blank)</i> '+(d.em=='unv'?d.to+' <span class="chip warn">unverified</span>':'<span class="chip bad">none found</span>')}<br><b>Subject:</b> ${d.sub}</div><div class="b">${ph(d.body)}</div></div>
+ <div class="lbl">Why it passed (65 needed) · score ${d.sc}</div><div class="why">${d.why.map(w=>`<div><b>${w[0]} · ${w[1]}</b>${w[2]}</div>`).join('')}</div>`}
+function setS(s){const d=D.find(x=>x.id==sel);d.status=s;list();pv()}
+function modal(h){$('#mbox').innerHTML=h;$('#modal').classList.remove('hide')}
+$('#modal').onclick=e=>{if(e.target.id=='modal')$('#modal').classList.add('hide')}
+function gmail(){const d=D.find(x=>x.id==sel);modal(`<div class="row"><h3>Gmail, Drafts folder</h3><button class="btn sm" onclick="$('#modal').classList.add('hide')">Close</button></div><p class="sub" style="margin:6px 0 12px">What Rohit sees in Gmail. Never auto-sent.</p><div class="gm"><div class="t">Draft</div><div class="r">To: ${d.em=='ok'?d.to:''}</div><div class="r">Subject: ${d.sub}</div><div class="b">${d.body}</div></div>`)}
+function rej(){$('#rejb').innerHTML=R.map((r,i)=>`<tr><td><b>${r[0]}</b></td><td><span class="chip bad">${r[1]}</span></td><td>${r[2]}</td><td>${r[3]}</td><td><button class="btn sm" id="ov${i}" onclick="this.outerHTML='<span class=\\'chip info\\'>queued for a draft</span>'">Overrule</button></td></tr>`).join('')}
+function runNow(){const S=[['Lock taken','one run at a time'],['Fetching news','4 RSS feeds → 142 articles'],['Keyword filter (code)','142 → 31 look like funding news'],['Memory check','31 → 6 new startups (2 already seen)'],['Gemini reads + scores','temperature 0, rubric from Supabase'],['Code decides','3 pass · 3 rejected (saved with reasons)'],['Email lookup (passes only)','Hunter 1 · contact page 1 · none 1'],['Gemini writes drafts','3 drafts, wording from your settings'],['Saved','Gmail drafts + dashboard updated']];
+ modal(`<div class="row"><h3>Run now</h3></div><p class="sub" style="margin:4px 0 12px">Simulation of one real run.</p><div id="steps">${S.map((s,i)=>`<div class="step" id="s${i}"><div class="d">${i+1}</div><div>${s[0]}<small>${s[1]}</small></div></div>`).join('')}</div><div style="margin-top:14px"><button class="btn p" onclick="$('#modal').classList.add('hide')">Close</button></div>`);
+ S.forEach((_,i)=>setTimeout(()=>{const e=document.getElementById('s'+i);if(e){e.classList.add('on');e.querySelector('.d').textContent='✓'}},500+i*650))}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');['drafts','rej','runs','rub'].forEach(s=>document.getElementById(s).classList.toggle('hide',s!=t.dataset.t))});
+list();pv();rej();
+</script></body></html>

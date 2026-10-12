@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+.vercel
+*.tsbuildinfo
+scripts/calibration/cache/
+design/shots/
+.DS_Store
