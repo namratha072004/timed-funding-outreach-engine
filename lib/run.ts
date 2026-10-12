@@ -392,9 +392,9 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
           }
           const site = await readSite(siteDomain);
           homepage = site.homepageText;
-          // verified Hunter addresses first, then addresses found on the company's own site (unverified), then other Hunter finds (unverified)
+          // verified Hunter addresses first, then addresses found on the startup's own website (unverified)
           const hv = contacts.filter((x) => x.verified);
-          const rest = [...site.contacts, ...contacts.filter((x) => !x.verified)];
+          const rest = [...site.contacts];
           contacts = [...hv, ...rest.filter((x, i) => rest.findIndex((y) => y.email === x.email) === i)].slice(0, 6);
         }
         const out = await writeDraft(

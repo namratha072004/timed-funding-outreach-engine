@@ -189,8 +189,8 @@ export async function hunterVerify(email: string): Promise<{ status?: string; sc
 }
 
 /**
- * Hunter domain search, then Hunter's verifier on the best candidates. Returns real addresses Hunter found:
- * verified=true only for verifier "valid" with score 100; the others come back with verified=false (shown as unverified).
+ * Hunter domain search, then Hunter's verifier on the best candidates. Returns ONLY addresses the verifier confirms
+ * (valid, score 100), all with verified=true. Unconfirmed Hunter addresses are never used.
  * `expectName`: when the domain was guessed, Hunter's organization must match this name or nothing is returned.
  */
 export async function hunterContacts(domain: string, expectName?: string): Promise<Contact[]> {
@@ -203,12 +203,9 @@ export async function hunterContacts(domain: string, expectName?: string): Promi
   const emails: any[] = (data?.emails ?? []).filter((e: any) => e?.value).sort((a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0));
   const toContact = (e: any, verified: boolean): Contact => ({ email: String(e.value).toLowerCase(), name: [e.first_name, e.last_name].filter(Boolean).join(" ") || null, role: e.position ?? null, source: "hunter", verified });
   const out: Contact[] = [];
-  let checked = 0;
-  for (const e of emails.slice(0, 5)) {
-    if (checked < 3) {
-      checked++;
-      out.push(toContact(e, isHunterVerified(await hunterVerify(e.value).catch(() => null))));
-    } else out.push(toContact(e, false));
+  for (const e of emails.slice(0, 3)) {
+    // only addresses Hunter's verifier confirms (valid, score 100) are kept; everything else Hunter found is dropped
+    if (isHunterVerified(await hunterVerify(e.value).catch(() => null))) out.push(toContact(e, true));
   }
-  return out.sort((a, b) => Number(b.verified) - Number(a.verified));
+  return out;
 }

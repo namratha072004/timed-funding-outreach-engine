@@ -29,7 +29,7 @@ for (const d of drafts ?? []) {
   {
     const site = (await readSite(domain)).contacts;
     const hv = contacts.filter((c) => c.verified);
-    const rest = [...site, ...contacts.filter((c) => !c.verified)];
+    const rest = [...site];
     contacts = [...hv, ...rest.filter((x, i) => rest.findIndex((y) => y.email === x.email) === i)].slice(0, 6);
   }
   const chosen = contacts.find((c) => c.verified) ?? contacts[0] ?? null;
