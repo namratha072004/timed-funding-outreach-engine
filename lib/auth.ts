@@ -13,8 +13,11 @@ export function safeEqual(a: string, b: string): boolean {
   return d === 0;
 }
 
+/** Testing mode: the unlock page accepts any non-empty code. Set ACCEPT_ANY_ACCESS_CODE=false to enforce ACCESS_CODE again. */
+export const anyCodeAccepted = () => process.env.ACCEPT_ANY_ACCESS_CODE === "true";
+
 export async function expectedCookie(): Promise<string | null> {
-  const code = process.env.ACCESS_CODE;
+  const code = anyCodeAccepted() ? "testing-mode" : process.env.ACCESS_CODE;
   return code ? sha256Hex(`${code}|outreach-v1`) : null;
 }
 
@@ -24,6 +27,7 @@ export async function cookieOk(value: string | undefined | null): Promise<boolea
 }
 
 export async function codeOk(code: string): Promise<boolean> {
+  if (anyCodeAccepted()) return code.trim().length > 0;
   const real = process.env.ACCESS_CODE;
   return !!real && safeEqual(await sha256Hex(code), await sha256Hex(real));
 }

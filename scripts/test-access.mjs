@@ -17,9 +17,13 @@ r = await get("/api/run", { authorization: "Bearer wrong" }, "POST"); t("POST /a
 r = await get("/api/run/status"); t("GET /api/run/status without cookie", r.status === 401, `HTTP ${r.status}`);
 r = await get("/api/drafts/1/status", { "content-type": "application/json" }, "POST"); t("POST draft status without cookie", r.status === 401, `HTTP ${r.status}`);
 r = await get("/api/rejects/1/overrule", {}, "POST"); t("POST overrule without cookie", r.status === 401, `HTTP ${r.status}`);
+const anyMode = process.env.ACCEPT_ANY_ACCESS_CODE === "true";
 r = await fetch(base + "/api/unlock", { method: "POST", body: new URLSearchParams({ code: "definitely-wrong" }), redirect: "manual" });
-t("wrong access code is refused and sets no cookie", r.headers.get("location")?.includes("error=1") && !r.headers.get("set-cookie"), `HTTP ${r.status}`);
-r = await fetch(base + "/api/unlock", { method: "POST", body: new URLSearchParams({ code: process.env.ACCESS_CODE ?? "" }), redirect: "manual" });
+if (anyMode) t("testing mode: any non-empty code is accepted", !!r.headers.get("set-cookie") && !r.headers.get("location")?.includes("error=1"), `HTTP ${r.status}`);
+else t("wrong access code is refused and sets no cookie", r.headers.get("location")?.includes("error=1") && !r.headers.get("set-cookie"), `HTTP ${r.status}`);
+r = await fetch(base + "/api/unlock", { method: "POST", body: new URLSearchParams({ code: "" }), redirect: "manual" });
+t("an empty code is refused", r.headers.get("location")?.includes("error=1") && !r.headers.get("set-cookie"), `HTTP ${r.status}`);
+r = await fetch(base + "/api/unlock", { method: "POST", body: new URLSearchParams({ code: process.env.ACCESS_CODE || "anything" }), redirect: "manual" });
 const sc = r.headers.get("set-cookie") ?? "";
 t("right access code sets an httpOnly cookie (value is not the code)", /HttpOnly/i.test(sc) && !sc.includes(process.env.ACCESS_CODE ?? "\0"), `HTTP ${r.status}, flags: ${[/HttpOnly/i, /SameSite=lax/i, /Secure/i].map((x) => x.test(sc) ? x.source.replace(/\\/g, "") : "-").join(" ")}`);
 const cookie = sc.split(";")[0];

@@ -45,7 +45,8 @@ cron / Run now -> run lock -> RSS feeds -> keyword filter (code) -> memory check
 | `HUNTER_API_KEY` | Hunter.io |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` | Gmail OAuth, scope `gmail.compose` only |
 | `CRON_SECRET` | bearer token for the cron call |
-| `ACCESS_CODE` | the dashboard access code |
+| `ACCESS_CODE` | the dashboard access code (used when testing mode is off) |
+| `ACCEPT_ANY_ACCESS_CODE` | `true` = testing mode, the unlock page accepts any non-empty code; `false` = enforce `ACCESS_CODE` |
 
 ## How Rohit edits the rubric (no code change)
 
