@@ -42,16 +42,14 @@ export default function DraftCard({ d }: { d: Draft }) {
         {failed && <div className="note bad" style={{ marginTop: 16 }}>The draft could not be written: {String(d.body ?? "").replace("[draft failed] ", "")}. It is retried on the next run.</div>}
         {d.status === "pending_gmail" && <div className="note warn" style={{ marginTop: 16 }}>The Gmail draft is not created yet (Gmail did not answer). It is retried on the next run.</div>}
 
-        <div className="grid2">
-          <div><div className="k">To</div><div className="v">{d.to ?? "—"} <EmailPill d={d} /></div></div>
-          <div><div className="k">Subject</div><div className="v">{d.subject ?? "—"}</div></div>
-        </div>
+        <div className="readyline"><span className="rdot" aria-hidden="true" /><b>{failed ? "Draft failed" : "Draft ready"}</b><span className="meta">Generated {ago(d.createdAt)}</span> <EmailPill d={d} /></div>
 
         {!failed && d.body && (
-          <details>
-            <summary>Read the email</summary>
-            <div className="mail"><WithPlaceholders text={d.body} /></div>
-          </details>
+          <div className="mailpanel">
+            <div className="mrow"><span className="mk">To</span><span className="mv">{d.toName ? `${d.toName} <${d.to}>` : d.to ?? "No address found"}{d.to && d.emailSource !== "verified" && <span className="meta"> Left blank in the Gmail draft</span>}</span></div>
+            <div className="mrow"><span className="mk">Subject</span><span className="mv">{d.subject ?? ""}</span></div>
+            <div className="mbody"><WithPlaceholders text={d.body} /></div>
+          </div>
         )}
 
         <details>

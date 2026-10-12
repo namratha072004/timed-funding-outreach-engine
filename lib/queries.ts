@@ -69,12 +69,16 @@ export async function runsData() {
 }
 
 /** Number in the Drafts nav item: drafts waiting in To review. */
-export const tabCountsForNav = () => count("drafts", (q) => q.in("status", ["new", "pending_gmail", "draft_failed"]));
+export const tabCountsForNav = () => liveDraftCount(["new", "pending_gmail", "draft_failed"]);
+
+/** Drafts in the given statuses whose startup is not rejected. */
+const liveDraftCount = async (statuses: string[]): Promise<number> =>
+  (await serverDb().from("drafts").select("id, startups!inner(status)", { count: "exact", head: true }).in("status", statuses).neq("startups.status", "rejected")).count ?? 0;
 
 // ---------------------------------------------------------------------------------------------------- today
 export async function todayData() {
   const [drafts, rejected, articlesRead, sources] = await Promise.all([
-    count("drafts", (q) => q.in("status", ["new", "pending_gmail"])),
+    liveDraftCount(["new", "pending_gmail"]),
     count("startups", (q) => q.eq("status", "rejected")),
     count("articles", (q) => q.eq("status", "processed")),
     count("feeds", (q) => q.eq("active", true)),
@@ -99,7 +103,8 @@ export const kindOf = (emailSource: string): Kind => (emailSource === "verified"
 export async function draftsData(tab: Tab, kind?: Kind) {
   const db = serverDb();
   const [{ data: drafts }, crit] = await Promise.all([db.from("drafts").select("*, startups(*)").order("created_at", { ascending: false }).limit(300), criteriaNames()]);
-  const rows = (drafts ?? []).filter((d: Row) => d.startups);
+  // a startup that is (now) rejected, for example "older than 24 hours", keeps its draft but does not show in Drafts
+  const rows = (drafts ?? []).filter((d: Row) => d.startups && d.startups.status !== "rejected");
   const counts: Record<Tab, number> = { review: 0, approved: 0, done: 0 };
   for (const d of rows) counts[tabOf(d.status)]++;
   const inTab = rows.filter((d: Row) => tabOf(d.status) === tab);
@@ -125,6 +130,7 @@ export async function draftsData(tab: Tab, kind?: Kind) {
       startup: { name: s.name as string, stage: s.stage_label as string | null, amount: s.amount_text as string | null, sector: s.sector as string | null, location: s.location as string | null, score: score(s) as number | null },
       announced: list[0]?.published_at ?? s.first_seen_at ?? null,
       to: d.to_email as string | null,
+      toName: ((d.contacts ?? []).find((x: Row) => x.email === d.to_email)?.name as string | null | undefined) ?? null,
       emailSource: d.email_source as string,
       contact: contact ? { source: contact.source as string, verified: !!contact.verified, domain: (s.domain as string | null) ?? ((d.to_email as string | null)?.split("@")[1] ?? null) } : null,
       subject: d.subject as string | null,

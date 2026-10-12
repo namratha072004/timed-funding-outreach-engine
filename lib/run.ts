@@ -342,7 +342,8 @@ export async function runStage(db: SupabaseClient, runId: number, stage: Stage):
         c.duplicates++;
         return markProcessed(known.id, `duplicate of startup ${known.id}`);
       }
-      const publishedAt = arts.map((a) => (a.published_at ? new Date(a.published_at) : null)).filter(Boolean).sort((p, q) => q!.getTime() - p!.getTime())[0] ?? null;
+      // "announced in the last 24 hours" is judged on the EARLIEST report: later coverage of an old raise must not pass as new
+      const publishedAt = arts.map((a) => (a.published_at ? new Date(a.published_at) : null)).filter(Boolean).sort((p, q) => p!.getTime() - q!.getTime())[0] ?? null;
       const d = decide({ rubric, now, publishedAt, stageLabel: x.stageLabel, stageQuote: x.stageQuote, amountUsd: x.amountUsd, marks: x.marks });
       const { startup, created } = await claimStartup(db, {
         ...cand,
@@ -476,13 +477,13 @@ export async function runStage(db: SupabaseClient, runId: number, stage: Stage):
         const rest = [...site.contacts];
         contacts = [...hv, ...rest.filter((x, i) => rest.findIndex((y) => y.email === x.email) === i)].slice(0, 6);
       }
+      // the person the email is addressed to is decided first (verified wins), so the greeting matches the To field
+      const chosen = contacts.find((x) => x.verified) ?? contacts[0] ?? null;
       const out = await writeDraft(
-        { startup: { name: s.name, sector: s.sector, location: s.location, stage: s.stage_label, amountText: s.amount_text, investors: s.investors ?? [], founders: s.founders ?? [], description: s.description }, articleText: articleTextAll, homepageText: homepage, contacts, outreach: rubric.outreach },
+        { startup: { name: s.name, sector: s.sector, location: s.location, stage: s.stage_label, amountText: s.amount_text, investors: s.investors ?? [], founders: s.founders ?? [], description: s.description }, articleText: articleTextAll, homepageText: homepage, contacts: chosen ? [chosen] : [], outreach: rubric.outreach, thesis: { sectors: rubric.thesisSectors, geographies: rubric.thesisGeographies } },
         undefined,
         () => budget.take(),
       );
-      // a verified address always wins over an unverified one; otherwise Gemini's pick (from the list) stands
-      const chosen = contacts.find((x) => x.verified) ?? contacts.find((x) => x.email === out.chosenContact) ?? contacts[0] ?? null;
       const emailSource = !chosen ? "none" : chosen.verified ? "verified" : "unverified";
       c[`emails_${emailSource}`]++;
       const row = { ...draft, to_email: chosen?.email ?? null, email_source: emailSource, contacts, subject: out.subject, body: out.body, inferred_points: out.inferredPoints, status: "new", updated_at: new Date().toISOString() };

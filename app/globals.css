@@ -288,3 +288,14 @@ th.n, td.n { text-align: right; }
   .top, .roll > span, .roll::after, .draft, .stat { transition: none; }
   .nav:hover .roll > span, .nav:hover .roll::after, .draft:hover, .stat:hover { transform: none; }
 }
+
+/* ---- draft card: the email shown like a mail window ---- */
+.readyline { display: flex; align-items: center; gap: var(--s1); flex-wrap: wrap; margin: var(--s2) 0 var(--s1); }
+.rdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.readyline > b { color: var(--accent); font-weight: 600; }
+.mailpanel { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: var(--s1) var(--s3) var(--s3); }
+.mrow { display: grid; grid-template-columns: 88px 1fr; gap: var(--s2); padding: 12px 0; border-bottom: 1px solid var(--line); }
+.mk { color: var(--muted); }
+.mv { overflow-wrap: anywhere; }
+.mbody { padding-top: var(--s3); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }
+@media (max-width: 760px) { .mrow { grid-template-columns: 1fr; gap: 2px; } .mailpanel { padding: var(--s1) var(--s2) var(--s2); } }

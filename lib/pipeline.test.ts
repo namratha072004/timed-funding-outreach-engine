@@ -180,8 +180,8 @@ describe("contacts", () => {
 
 const hunter: Contact = { email: "ceo@zaperon.com", name: "A", role: "CEO", source: "hunter", verified: true };
 const page: Contact = { email: "hello@zaperon.com", name: null, role: null, source: "contact_page", verified: false };
-const GOOD = "Hi there,\n\nCongratulations on the round. Your wafer-level tool caught our eye.\n\nI am [SENDER NAME] at [ACCELERATOR NAME]. [PROGRAM DESCRIPTION]\n\n[CALL TO ACTION]\n\n[SENDER NAME]";
-const ctx = (over = {}) => ({ contacts: [hunter, page], emptyKeys: ["sender_name", "accelerator_name", "program_description", "call_to_action"], ...over });
+const GOOD = "Hi there,\n\nCongratulations on the round. Your wafer-level tool caught our eye.\n\nOur accelerator works with Indian deeptech teams.\n\nWould you be open to a brief chat next week?\n\nBest regards,\nRohit";
+const ctx = (over = {}) => ({ contacts: [hunter, page], ...over });
 
 describe("draft validation (code-enforced rules)", () => {
   const ok = { subject: "Congratulations, Zaperon", body: GOOD, chosenContact: "ceo@zaperon.com", inferredPoints: [] };
@@ -191,9 +191,11 @@ describe("draft validation (code-enforced rules)", () => {
     expect(validateDraft({ ...ok, body: `${GOOD}\n${s}` }, ctx()).join()).toMatch(/funding/));
   it.each(["Raised in the last 30 days, so timing is right.", "within 60 days of raising", "this window matters", "thirty days after"])("rejects window mention: %s", (s) =>
     expect(validateDraft({ ...ok, body: `${GOOD}\n${s}` }, ctx()).join()).toMatch(/window/));
-  it("requires a visible placeholder for each empty outreach setting", () => {
-    expect(validateDraft({ ...ok, body: "Hi there, congratulations." }, ctx()).join()).toMatch(/missing placeholder \[SENDER NAME\]/);
-    expect(validateDraft({ ...ok, body: "Hi there, congratulations. Sender X" }, ctx({ emptyKeys: [] }))).toEqual([]);
+  it("never allows a [bracketed placeholder] or a dash used as punctuation", () => {
+    expect(validateDraft({ ...ok, body: `${GOOD}\n[SENDER NAME]` }, ctx()).join()).toMatch(/bracketed placeholder/);
+    expect(validateDraft({ ...ok, body: `${GOOD}\nYour tool \u2014 and the team \u2014 stood out.` }, ctx()).join()).toMatch(/dash/);
+    expect(validateDraft({ ...ok, body: `${GOOD}\nYour tool -- stood out.` }, ctx()).join()).toMatch(/dash/);
+    expect(validateDraft({ ...ok, body: `${GOOD}\nA 12-month roadmap.` }, ctx())).toEqual([]);
   });
   it("chosen_contact must be in the supplied list or null", () => {
     expect(validateDraft({ ...ok, chosenContact: "invented@zaperon.com" }, ctx()).join()).toMatch(/not in the supplied list/);
@@ -203,11 +205,14 @@ describe("draft validation (code-enforced rules)", () => {
     expect(validateDraft({ ...ok, body: GOOD + "\nwrite to ceo2@zaperon.com" }, ctx()).join()).toMatch(/not supplied/);
     expect(validateDraft({ ...ok, body: GOOD + "\nwrite to ceo@zaperon.com" }, ctx())).toEqual([]);
   });
-  it("resolveOutreach turns empty values into placeholders", () => {
-    const r = resolveOutreach({ sender_name: "Rohit", accelerator_name: "", program_description: "  ", call_to_action: "", style_notes: "" });
-    expect(r.values.accelerator_name).toBe("[ACCELERATOR NAME]");
+  it("resolveOutreach fills empty values with plain defaults, never a placeholder", () => {
+    const r = resolveOutreach({ sender_name: "", accelerator_name: "", program_description: "  ", call_to_action: "", style_notes: "" });
     expect(r.values.sender_name).toBe("Rohit");
-    expect(r.emptyKeys).toEqual(["accelerator_name", "program_description", "call_to_action"]);
+    expect(r.values.call_to_action).toBe("Would you be open to a brief chat next week?");
+    expect(r.values.accelerator_name).toBe("");
+    expect(r.values.program_description).toBe("");
+    expect(Object.values(r.values).join(" ")).not.toMatch(/\[/);
+    expect(resolveOutreach({ sender_name: "Asha", accelerator_name: "Mesa", program_description: "", call_to_action: "Reply to this", style_notes: "" }).values).toMatchObject({ sender_name: "Asha", accelerator_name: "Mesa", call_to_action: "Reply to this" });
   });
 });
 
@@ -215,10 +220,10 @@ describe("writeDraft retry and never-invent guarantees", () => {
   const dctx: DraftContext = { startup: { name: "Zaperon", sector: null, location: null, stage: "seed", amountText: null, investors: [], founders: [], description: null }, articleText: "t", homepageText: "", contacts: [hunter], outreach: {} };
   const answer = (over: any = {}) => ({ subject: "Congrats", body: GOOD, chosen_contact: "ceo@zaperon.com", inferred_points: [], ...over });
   it("retries once with the problems, then succeeds", async () => {
-    const gen = vi.fn().mockResolvedValueOnce(answer({ body: "too short, no placeholders" })).mockResolvedValueOnce(answer());
+    const gen = vi.fn().mockResolvedValueOnce(answer({ body: "Hi there, congratulations [SENDER NAME]" })).mockResolvedValueOnce(answer());
     const out = await writeDraft(dctx, gen as any);
     expect(gen).toHaveBeenCalledTimes(2);
-    expect(gen.mock.calls[1]![0].prompt).toMatch(/missing placeholder/);
+    expect(gen.mock.calls[1]![0].prompt).toMatch(/bracketed placeholder/);
     expect(out.chosenContact).toBe("ceo@zaperon.com");
   });
   it("fails after two bad attempts (becomes draft_failed upstream)", async () => {
