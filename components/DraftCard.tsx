@@ -2,7 +2,7 @@ import { WithPlaceholders } from "./Placeholders";
 import MoveButtons from "./MoveButtons";
 import { Card, Pub, StatusPill } from "./ui";
 import { gmailLink } from "@/lib/gmail";
-import type { draftsData, Tab } from "@/lib/queries";
+import type { draftsData } from "@/lib/queries";
 import { tabOf } from "@/lib/queries";
 import { ago } from "@/lib/time";
 
@@ -22,10 +22,12 @@ function contactNote(d: Draft): string {
   return "No address found";
 }
 
-export default function DraftCard({ d, tab }: { d: Draft; tab: Tab }) {
+/** Short and calm: the facts first, the email and the evidence one click away. */
+export default function DraftCard({ d }: { d: Draft }) {
   const s = d.startup;
   const failed = d.status === "draft_failed";
   const meta = [cap(s.stage), s.amount, s.sector, s.location, d.announced ? `Announced ${ago(d.announced)}` : null].filter(Boolean).join(" · ");
+  const first = d.articles[0];
   return (
     <Card className="draft">
       <article id={`draft-${d.id}`}>
@@ -41,33 +43,34 @@ export default function DraftCard({ d, tab }: { d: Draft; tab: Tab }) {
         {d.status === "pending_gmail" && <div className="note warn" style={{ marginTop: 16 }}>The Gmail draft is not created yet (Gmail did not answer). It is retried on the next run.</div>}
 
         <div className="grid2">
-          <div><div className="k">To</div><div className="v">{d.to ?? "—"}{d.to && d.emailSource !== "verified" && <div className="meta">Left blank in the Gmail draft</div>}</div></div>
-          <div><div className="k">Email source</div><div className="v"><EmailPill d={d} /></div></div>
+          <div><div className="k">To</div><div className="v">{d.to ?? "—"} <EmailPill d={d} /></div></div>
           <div><div className="k">Subject</div><div className="v">{d.subject ?? "—"}</div></div>
-          <div><div className="k">First reported by</div><div className="v">{d.firstReportedBy ?? "—"}</div></div>
         </div>
 
-        <div className="srcbox">
-          <div className="k">Sources</div>
-          {d.articles.map((a) => (
-            <div className="li" key={a.id}>
-              <Pub>{a.source}</Pub>
-              <a href={a.url} target="_blank" rel="noreferrer noopener">{a.title} ↗</a>
-              <span className="meta">published {ago(a.published)}</span>
-            </div>
-          ))}
-          {d.articles.length > 1 && <div className="meta">Same startup, {d.articles.length} articles merged into one draft.</div>}
-          <div className="li"><Pub>Contact</Pub><span>{contactNote(d)}</span></div>
-        </div>
-
-        {!failed && d.body && <div className="mail"><WithPlaceholders text={d.body} /></div>}
-
-        {d.why.length > 0 && (
+        {!failed && d.body && (
           <details>
-            <summary>Why it passed (quotes from the article)</summary>
-            <ul>{d.why.map((w) => <li key={w.name}><b>{w.name}: {w.mark}</b>{w.quote ? `, “${w.quote}”` : ""}</li>)}</ul>
+            <summary>Read the email</summary>
+            <div className="mail"><WithPlaceholders text={d.body} /></div>
           </details>
         )}
+
+        <details>
+          <summary>
+            Sources and why it passed{first ? ` · first reported by ${first.source}` : ""}{d.articles.length > 1 ? ` · ${d.articles.length} articles` : ""}
+          </summary>
+          <div className="srcbox">
+            {d.articles.map((a) => (
+              <div className="li" key={a.id}>
+                <Pub>{a.source}</Pub>
+                <a href={a.url} target="_blank" rel="noreferrer noopener">{a.title} ↗</a>
+                <span className="meta">published {ago(a.published)}</span>
+              </div>
+            ))}
+            {d.articles.length > 1 && <div className="meta">Same startup, {d.articles.length} articles merged into one draft.</div>}
+            <div className="li"><Pub>Contact</Pub><span>{contactNote(d)}</span></div>
+          </div>
+          {d.why.length > 0 && <ul>{d.why.map((w) => <li key={w.name}><b>{w.name}: {w.mark}</b>{w.quote ? `, “${w.quote}”` : ""}</li>)}</ul>}
+        </details>
 
         <div className="actions">
           <a className="btn primary" href={gmailLink(d.gmail)} target="_blank" rel="noreferrer noopener" aria-disabled={!d.gmail}>Open Gmail draft</a>

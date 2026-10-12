@@ -91,13 +91,22 @@ const criteriaNames = async (): Promise<{ order: string[]; names: Record<string,
   return { order: (data ?? []).map((c: Row) => c.key), names: Object.fromEntries((data ?? []).map((c: Row) => [c.key, c.name])) };
 };
 
-export async function draftsData(tab: Tab) {
+export type Kind = "verified" | "unverified" | "none";
+export const KINDS: { key: Kind; label: string }[] = [{ key: "verified", label: "Verified" }, { key: "unverified", label: "Unverified" }, { key: "none", label: "No address" }];
+export const kindOf = (emailSource: string): Kind => (emailSource === "verified" ? "verified" : emailSource === "unverified" ? "unverified" : "none");
+
+/** `kind` = which email group to show inside the tab; when not given, the first group that has drafts. */
+export async function draftsData(tab: Tab, kind?: Kind) {
   const db = serverDb();
   const [{ data: drafts }, crit] = await Promise.all([db.from("drafts").select("*, startups(*)").order("created_at", { ascending: false }).limit(300), criteriaNames()]);
   const rows = (drafts ?? []).filter((d: Row) => d.startups);
   const counts: Record<Tab, number> = { review: 0, approved: 0, done: 0 };
   for (const d of rows) counts[tabOf(d.status)]++;
-  const mine = rows.filter((d: Row) => tabOf(d.status) === tab);
+  const inTab = rows.filter((d: Row) => tabOf(d.status) === tab);
+  const kindCounts: Record<Kind, number> = { verified: 0, unverified: 0, none: 0 };
+  for (const d of inTab) kindCounts[kindOf(d.email_source)]++;
+  const shownKind: Kind = kind && KINDS.some((k) => k.key === kind) ? kind : (KINDS.find((k) => kindCounts[k.key] > 0)?.key ?? "verified");
+  const mine = inTab.filter((d: Row) => kindOf(d.email_source) === shownKind);
   const ids = mine.map((d: Row) => d.startup_id);
   const { data: arts } = ids.length ? await db.from("articles").select("id,title,source,published_at,canonical_url,startup_id").in("startup_id", ids) : { data: [] as Row[] };
   const byStartup = new Map<number, Row[]>();
@@ -129,7 +138,7 @@ export async function draftsData(tab: Tab) {
   });
   // To review (and the other tabs): best fit first, then newest
   cards.sort((a, b) => (b.startup.score ?? -1) - (a.startup.score ?? -1) || b.createdAt.localeCompare(a.createdAt));
-  return { cards, counts };
+  return { cards, counts, kindCounts, shownKind };
 }
 
 // ---------------------------------------------------------------------------------------------------- rejected

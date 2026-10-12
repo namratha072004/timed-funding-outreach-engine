@@ -97,6 +97,15 @@ h1 { font-size: var(--fs-lg); line-height: 1.2; }
 .tabs { display: flex; gap: var(--s0); border-bottom: 1px solid var(--line); margin-bottom: var(--s3); flex-wrap: wrap; }
 .tabs a { padding: 12px 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tabs a.on { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.kinds { display: flex; gap: var(--s1); flex-wrap: wrap; margin-bottom: var(--s1); }
+.kind { display: inline-flex; align-items: center; gap: var(--s1); padding: var(--s1) var(--s2); border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); min-height: 40px; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.kind b { font-weight: 600; background: var(--line); color: var(--ink); border-radius: 99px; padding: 0 var(--s1); }
+.kind:hover { color: var(--ink); border-color: var(--accent); }
+.kind.on { color: var(--ink); font-weight: 600; }
+.kind.verified.on { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.kind.unverified.on { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+.kind.none.on { background: var(--tint); border-color: var(--muted); color: var(--ink); }
+.kindhelp { margin: 0 0 var(--s3); }
 .stack { display: flex; flex-direction: column; gap: var(--s2); }
 .actions { display: flex; gap: var(--s1); flex-wrap: wrap; align-items: center; }
 .empty { padding: var(--s5) var(--s3); text-align: center; }
@@ -121,6 +130,7 @@ h1 { font-size: var(--fs-lg); line-height: 1.2; }
 .li a:hover, td a:hover { text-decoration: underline; }
 .mail { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: var(--s2); white-space: pre-wrap; overflow-wrap: anywhere; }
 details { margin-top: 12px; }
+details > .mail, details > .srcbox { margin-top: var(--s1); }
 summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 details ul { margin: var(--s1) 0 0 var(--s2); color: var(--muted); }
 details li { padding: 2px 0; }
