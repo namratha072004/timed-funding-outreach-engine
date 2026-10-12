@@ -59,7 +59,7 @@ Actions that change data ask for the access code in a small dialog: Run now, Ove
 
 On the dashboard, under **Settings > Rubric** (sectors and countries are picked from lists) (pass mark, the five weights, reject-straight-away for sector and geography, sectors, countries, stages, look-back window) and **Runs & health** (articles per run, Gemini calls per run, email lookups per run, funding words). Every save is checked on the server first (weights must total 100, lists cannot be empty, caps must be in range) and needs the access code. Changes apply from the next run.
 
-The same values still live in Supabase and can be edited there: `rubric_settings`, `rubric_criteria`, `outreach_settings` (sender, accelerator, program, call to action; edited in Supabase only) and `feeds`.
+**Supabase is the other way to edit, and it stays fully supported.** The same values live there and can be edited directly: `rubric_settings`, `rubric_criteria`, `outreach_settings` (sender, accelerator, program, call to action; edited in Supabase only) and `feeds`.
 
 `rubric_meta.version` moves only when something that changes scoring changes: the pass mark, points, stages, round-size limit, sectors, countries, or any criterion (migration `003`). Editing the look-back window, run caps or funding words does not move it, so it does not trigger a re-check of earlier rejects.
 

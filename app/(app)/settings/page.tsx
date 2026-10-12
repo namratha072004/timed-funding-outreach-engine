@@ -21,7 +21,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const tab = (await searchParams).tab === "notifications" ? "notifications" : "rubric";
   return (
     <>
-      <PageHeader title="Settings" sub="How startups are scored, and how you hear about new drafts." />
+      <PageHeader title="Settings" sub="How startups are scored, and how you hear about new drafts. Two ways to edit: here, or directly in Supabase." />
       <div className="tabs" role="tablist">
         <Link href="/settings" className={tab === "rubric" ? "on" : ""} role="tab" aria-selected={tab === "rubric"}>Rubric</Link>
         <Link href="/settings?tab=notifications" className={tab === "notifications" ? "on" : ""} role="tab" aria-selected={tab === "notifications"}>Notifications</Link>
@@ -36,6 +36,9 @@ async function RubricTab() {
   const criteria: Criterion[] = r.criteria.map((c) => ({ key: c.key, name: c.name, help: HELP[c.key] ?? c.question }));
   return (
     <>
+      <div className="note">
+        <b>Two ways to edit the rubric.</b> Here on this page, or directly in Supabase (tables <b>rubric_settings</b>, <b>rubric_criteria</b>, <b>outreach_settings</b> and <b>feeds</b>). Both change the same values, and the next run uses whichever was saved last. This page checks your input before saving; Supabase does not, so there keep the weights sensible and the lists non-empty.
+      </div>
       <div className="note">Rubric version {r.version} is active. Changes apply from the next run. Startups rejected earlier may be re-checked once, because the scoring changed. Changing only the look-back window or the run limits does not trigger that.</div>
       <RubricForm
         initial={{
