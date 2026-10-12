@@ -1,0 +1,31 @@
+name: Funding pipeline (every 3 hours)
+
+# Vercel Hobby can only run a cron once a day, so GitHub Actions calls the app's /api/run every 3 hours.
+# The run reads the feeds, judges new articles on the rubric (24 h window), de-duplicates against memory,
+# and writes drafts to Gmail Drafts. It never sends email.
+on:
+  schedule:
+    - cron: "0 */3 * * *" # every 3 hours, UTC (GitHub may start it a few minutes late)
+  workflow_dispatch: {} # "Run workflow" button in the Actions tab
+
+concurrency:
+  group: funding-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Call /api/run
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          out=$(mktemp)
+          code=$(curl -sS -m 300 -o "$out" -w '%{http_code}' -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL}/api/run")
+          echo "HTTP ${code}"
+          cat "$out"; echo
+          # 200 = ran, 409 = another run was already in progress (the lock skipped this one): both are fine
+          if [ "$code" != "200" ] && [ "$code" != "409" ]; then exit 1; fi

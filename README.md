@@ -13,7 +13,7 @@ cron / Run now -> run lock -> RSS feeds -> keyword filter (code) -> memory check
   -> save to Supabase + Gmail draft -> dashboard -> Rohit reviews, edits, sends from Gmail
 ```
 
-- **Trigger**: Vercel Cron calls `GET /api/run` with `Authorization: Bearer $CRON_SECRET` (Vercel sends it automatically when `CRON_SECRET` is set) at `30 3 * * *` UTC = 09:00 IST. The dashboard's **Run now** button calls `POST /api/run` with the access cookie.
+- **Trigger**: a GitHub Actions workflow (`.github/workflows/pipeline.yml`) calls `GET /api/run` with `Authorization: Bearer $CRON_SECRET` **every 3 hours** (Vercel Hobby only allows a daily cron, so Vercel Cron is not used). It needs the repo secrets `CRON_SECRET` and `APP_URL`. Scheduled runs read articles not read yet; the dashboard's **Run now** button (`POST /api/run`) reads every article in the feeds.
 - **Run guard**: a lease lock in `run_lock` (one atomic UPDATE) lets only one run happen at a time; a second caller logs "skipped: already running". A run uses concurrency 3, stops starting new work after 240 s (Hobby limit is 300 s), and obeys the per-run caps in `rubric_settings`.
 - **Memory**: every article (by canonical URL) and startup (by cleaned name and verified domain) is remembered. Repeats are skipped before any AI call. A Gemini error leaves the article retryable.
 - **Scoring**: yes = 1, partial = 0.5 (only where allowed), no = 0, unclear = 0. `score = sum(weight x points) / sum(active weights) x 100`. Pass needs the stage gate, the recency gate, no `reject_on_no` criterion marked "no", and `score >= pass_mark`. Every "yes" or "partial" must carry a quote that really appears in the article, or it is downgraded to "unclear".
@@ -82,7 +82,7 @@ npm run build && npx next start -p 3100
 
 ## Deploy (Vercel)
 
-Import the GitHub repo, set the environment variables above for Production, deploy. `vercel.json` registers the cron. Vercel sends `CRON_SECRET` as the bearer token automatically.
+Import the GitHub repo, set the environment variables above for Production, deploy. The schedule lives in GitHub Actions, not Vercel. Add the repo secrets `CRON_SECRET` (same value as in Vercel) and `APP_URL` (your deployed URL).
 
 ## Honest limitations
 

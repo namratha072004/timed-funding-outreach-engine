@@ -25,7 +25,7 @@ const HOUR = 3_600_000;
 export const STEPS = [
   { key: "lock", label: "Lock taken" },
   { key: "fetch", label: "Fetching news" },
-  { key: "filter", label: "Listing all articles" },
+  { key: "filter", label: "Listing articles" },
   { key: "memory", label: "Memory check" },
   { key: "read", label: "Gemini reads + scores" },
   { key: "decide", label: "Code decides" },
@@ -163,19 +163,27 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
     }
     await step("fetch", `${feedRows?.length ?? 0} feeds → ${c.fetched} items, ${c.new_articles} new`);
 
-    // ---- every article currently in the feeds is read on EVERY run (scheduled or manual), newest first.
-    // No "already seen" skipping, no keyword or age pre-filter: the rubric's gates decide after reading.
-    // A startup that is already known (drafted or rejected) is recognised after reading and never drafted twice.
-    await step("filter", "listing every article in the feeds", "active");
-    const urls = [...feedItems.keys()];
-    const candidates: Row[] = [];
-    for (let i = 0; i < urls.length; i += 100) {
-      const { data } = await db.from("articles").select("*").in("canonical_url", urls.slice(i, i + 100));
-      candidates.push(...(data ?? []));
+    // ---- which articles are read
+    // Manual "Run now": every article currently in the feeds, newest first (judged on the rubric, known startups are skipped after reading).
+    // Scheduled runs (GitHub Actions every 3 hours): only articles not read yet, so a run finds what is new since the last one.
+    // READ_ALL_ON_SCHEDULE=true makes scheduled runs read everything too (one Gemini call per article per run).
+    await step("filter", "listing articles", "active");
+    const readAll = opts.trigger === "manual" || process.env.READ_ALL_ON_SCHEDULE === "true";
+    let candidates: Row[] = [];
+    if (readAll) {
+      const urls = [...feedItems.keys()];
+      for (let i = 0; i < urls.length; i += 100) {
+        const { data } = await db.from("articles").select("*").in("canonical_url", urls.slice(i, i + 100));
+        candidates.push(...(data ?? []));
+      }
+      candidates.sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
+    } else {
+      const since = new Date(now.getTime() - 30 * 24 * HOUR).toISOString();
+      const { data } = await db.from("articles").select("*").in("status", ["new", "error"]).gte("first_seen_at", since).order("published_at", { ascending: false, nullsFirst: false }).limit(2000);
+      candidates = data ?? [];
     }
-    candidates.sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     c.filtered = 0;
-    await step("filter", `${candidates.length} articles in the feeds. All will be read and judged on the rubric${rubric.lookbackHours == null ? " (no time window)" : `; the ${rubric.lookbackHours}h window is checked after reading`}`);
+    await step("filter", `${c.fetched} articles in the feeds; ${candidates.length} to read (${readAll ? "all of them" : "new since the last run"}). Judged on the rubric${rubric.lookbackHours == null ? " (no time window)" : `, ${rubric.lookbackHours}h window`}`);
 
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;
