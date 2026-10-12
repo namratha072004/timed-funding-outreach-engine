@@ -44,9 +44,21 @@ export default function OpenGmailButton({ id, canRecreate }: { id: number; canRe
     if (j.url) window.open(j.url, "_blank");
   }
 
+  async function restore() {
+    setBusy(true);
+    const r = await guard(() => fetch(`/api/drafts/${id}/recreate`, { method: "POST" }), "Putting the draft back in Gmail creates a draft, so it needs the code.");
+    setBusy(false);
+    if (!r) return;
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return toast(j.error ?? `Could not restore it (HTTP ${r.status}).`);
+    setGone(null);
+    toast(j.created ? "Restored: the draft is back in Gmail Drafts. Press Open Gmail draft to see it." : "It is already in Gmail, so nothing needed restoring.");
+  }
+
   return (
     <>
-      <button className="btn primary" disabled={busy} onClick={open}>{busy ? "Opening…" : "Open Gmail draft"}</button>
+      <button className="btn primary" disabled={busy} onClick={open}>{busy ? "Working…" : "Open Gmail draft"}</button>
+      {canRecreate && <button className="btn" disabled={busy} onClick={restore} title="Deleted this draft in Gmail by accident? This puts it back. If it is still there, nothing happens.">Restore in Gmail</button>}
       {gone && (
         <span className="note warn" role="status" style={{ margin: 0 }}>
           {gone === "missing" ? "This draft is no longer in Gmail (it may have been deleted)." : "There is no Gmail draft for this one yet."}{" "}

@@ -16,7 +16,8 @@
     "enrich:drafts": "tsx --env-file=.env.local scripts/enrich-drafts.ts",
     "reverify:drafts": "tsx --env-file=.env.local scripts/reverify-drafts.ts",
     "test:settings": "tsx --env-file=.env.local scripts/test-settings.ts",
-    "test:gmail-link": "tsx --env-file=.env.local scripts/test-gmail-link.ts"
+    "test:gmail-link": "tsx --env-file=.env.local scripts/test-gmail-link.ts",
+    "test:recreate": "tsx --env-file=.env.local scripts/test-recreate.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
