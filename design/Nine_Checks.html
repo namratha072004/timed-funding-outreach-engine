@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Nine Checks</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:2400px;height:1350px;background:#d8f0ef;color:#22343b;font-family:Inter,"Helvetica Neue",Arial,sans-serif;padding:76px 105px 0}
+h1{font-size:56px;font-weight:800;letter-spacing:-.01em}
+.sub{font-size:26px;color:#496067;margin-top:10px}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:56px;margin-top:48px}
+.col h2{font-size:34px;font-weight:700}
+.col .rule{font-style:italic;color:#587077;font-size:22px;margin:4px 0 24px}
+.c{margin-bottom:24px}
+.c h3{font-size:25px;font-weight:700;margin-bottom:6px}
+.c p{font-size:23px;line-height:1.46;color:#2c3f46}
+.y{color:#118a4a}.n{color:#c0261c}.p{color:#b8730a}
+.new{display:inline-block;font-size:15px;font-weight:800;letter-spacing:.05em;background:#118a4a;color:#fff;border-radius:99px;padding:2px 9px;vertical-align:middle;margin-left:8px}
+.chg{background:#c9820e}
+.verdict{position:absolute;left:105px;right:105px;bottom:70px;background:#fff;border:3px solid #7ac7c1;border-radius:20px;padding:26px 30px;font-size:30px}
+.key{position:absolute;right:105px;top:96px;font-size:20px;color:#496067;display:flex;gap:18px;align-items:center}
+</style>
+</head>
+<body>
+<h1>The Nine Checks: Does This Deserve to Be Built?</h1>
+<div class="sub">Timed Funding Outreach Engine · Rohit, accelerator program recruitment · updated for the current build</div>
+<div class="key"><span><span class="new chg">UPDATED</span> wording changed since the first version</span></div>
+<div class="cols">
+  <div class="col">
+    <h2>⚡ Kill Switches</h2><div class="rule">Any No means: don't build it.</div>
+    <div class="c"><h3>01 Problem real? <span class="y">YES</span></h3><p>Rohit misses 30–40% of announcements by hand and spends 20 minutes researching each startup. The 30–60 day window after a raise is when outreach converts best.</p></div>
+    <div class="c"><h3>02 Workflow repeated? <span class="y">YES</span><span class="new chg">UPDATED</span></h3><p>Every few hours the same steps run: scan the news, spot a raise, research, judge fit, write the email. Identical for every startup. It runs on a schedule (every 3 hours) and on demand.</p></div>
+    <div class="c"><h3>03 Input available? <span class="y">YES</span><span class="new chg">UPDATED</span></h3><p>Funding news is public and live (9 RSS feeds; Gemini Flash with Google Search only to find a startup's website). The thesis is edited by Rohit in the dashboard's Settings. Founder emails are rarely in articles, so we use Hunter.io (verified addresses only), then addresses the startup publishes on its own site, marked unverified. If neither works, the draft is made with the recipient blank and flagged.</p></div>
+  </div>
+  <div class="col">
+    <h2>📊 Sizing</h2><div class="rule">Any No means: build something smaller.</div>
+    <div class="c"><h3>04 Output valuable? <span class="y">YES</span><span class="new chg">UPDATED</span></h3><p>A ready, personalised draft inside the 30–60 day window is directly a recruitment lead for the accelerator. A Telegram message tells Rohit the moment new drafts are ready.</p></div>
+    <div class="c"><h3>05 Impact measurable? <span class="y">YES</span><span class="new chg">UPDATED</span></h3><p>Announcements caught vs missed, hours from announcement to draft, minutes per outreach (20 today), drafts approved. The dashboard logs it from day one: every article and what happened to it (Sources), every run (Runs &amp; health), and the approval tabs (Drafts), against Rohit's own 30–40% miss rate.</p></div>
+    <div class="c"><h3>08 ROI worth it? <span class="y">YES</span><span class="new chg">UPDATED</span></h3><p>Saves about 20 minutes per fit startup and recovers the 30–40% now missed. Running cost is low: Vercel, Supabase, GitHub Actions, Telegram and Hunter on free tiers; Gemini Flash pay-per-use with limits per run.</p></div>
+  </div>
+  <div class="col">
+    <h2>🚧 Boundary</h2><div class="rule">Any No means: put a human exactly here.</div>
+    <div class="c"><h3>06 Failure risk OK? <span class="y">YES</span> for drafting, <span class="n">NO</span> for sending<span class="new chg">UPDATED</span></h3><p>A wrong draft costs nothing because nothing is sent. An email to a founder speaks for the accelerator and cannot be recalled, so Rohit sends. A draft deleted by accident can be restored from the dashboard.</p></div>
+    <div class="c"><h3>07 Judgment protected? <span class="p">PARTLY</span><span class="new chg">UPDATED</span></h3><p>Extracting, scoring and drafting are assistive. Setting the thesis (Settings), approving and sending, and replying to founders stay with Rohit. The access code guards every change; the Telegram reminder only nudges and never acts.</p></div>
+    <div class="c"><h3>09 Owner clear? <span class="y">YES</span></h3><p>The system owns detection through drafting and the reminder. Rohit owns the thesis, every send and the founder relationship after that.</p></div>
+  </div>
+</div>
+<div class="verdict"><b>Verdict: build it, draft-only.</b> Automate find, assess, personalise, remind. A human approves and sends.</div>
+</body>
+</html>

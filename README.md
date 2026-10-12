@@ -24,6 +24,12 @@ GitHub Actions / Run now -> run lock -> RSS feeds -> memory check
 - **Email**: Hunter.io verified addresses first (capped per run), else addresses on the startup's own contact page (marked unverified). The Gmail **To** is filled only for Hunter-verified addresses.
 - **Draft rules, enforced in code**: at most 150 words; no funding promise; no mention of a 30-60 day window; empty settings show as `[PLACEHOLDERS]`; the chosen contact must come from the supplied list; inferred points are listed separately. One retry, then `draft_failed`.
 
+## Design documents
+
+- [`design/Components_Map.png`](design/Components_Map.png): the components map (actors, triggers, inputs, context, processing, AI, outputs), updated for GitHub Actions every 3 hours, editable Settings, the Gmail restore and the Telegram reminder. Source: `design/Components_Map.html`.
+- [`design/Nine_Checks.png`](design/Nine_Checks.png): the nine checks, with the wording that changed marked UPDATED. Source: `design/Nine_Checks.html`.
+- Re-render after editing a source: `node scripts/render-design.mjs design/Components_Map.html design/Components_Map.png 1900` and `node scripts/render-design.mjs design/Nine_Checks.html design/Nine_Checks.png 2400 1350`.
+
 ## Pages
 
 All pages are public and read-only: **Today** (`/`, welcome, no sidebar), **Drafts** (`/drafts`, tabs To review / Approved / Done), **Rejected**, **Sources** (feeds and every article with what happened to it) and **Runs & health** (with editable run limits and funding words). **Settings** and **Account** sit at the bottom left: Settings has the editable **Rubric** and **Notifications** (Telegram); Account shows who is signed in and lets you enter the access code or sign out. A top bar on every page shows the last run, a palette dropdown (Aurora is the default) and a Dark/Light toggle; both choices are remembered in cookies, and with no cookie the system theme is used.

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Timed Funding Outreach Engine: Components Map</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:Inter,"Helvetica Neue",Arial,sans-serif;background:#fff;color:#101c3d;width:1900px}
+header.t{padding:26px 28px 14px}
+header.t h1{font-size:27px;font-weight:700}
+header.t p{margin-top:6px;font-size:16px;color:#4a5576}
+#map{position:relative;width:1900px}
+.cols,.row{display:grid;grid-template-columns:212px repeat(6,271px) 62px}
+.cols div:last-child{background:#101c3d}
+.cols div{background:#101c3d;color:#fff;font-weight:600;font-size:18px;height:56px;display:flex;align-items:center;justify-content:center}
+.row{height:150px;position:relative}
+.row .actor{background:#101c3d;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-top:1px solid #2a3760;padding:0 10px}
+.row .actor b{font-size:17px}.row .actor small{font-size:12px;opacity:.78;margin-top:4px}
+.row .bg{grid-column:2 / span 6;border-top:1px solid rgba(0,0,0,.04)}
+.r-blue .bg{background:#e8f0fd}.r-green .bg{background:#e8f5ea}.r-red .bg{background:#fbe9e9}.r-yellow .bg{background:#fdf5dc}.r-lav .bg{background:#ecedfb}.r-orange .bg{background:#fdeedd;outline:2px dashed #f0a53a;outline-offset:-3px}
+.box{position:absolute;width:247px;height:132px;border-radius:12px;border:2px solid;padding:9px 11px;z-index:2}
+.box h3{font-size:14px;line-height:1.2;text-align:center;margin-bottom:5px}
+.box p{font-size:11.5px;line-height:1.38;text-align:center;color:#2a3350}
+.b-blue{background:#dbe7fb;border-color:#3b73d6}.b-green{background:#d5eedd;border-color:#38a35a}.b-red{background:#f6d3d3;border-color:#d64a4a}.b-yellow{background:#fbefb8;border-color:#d6a620}.b-lav{background:#dde1fb;border-color:#4a63d6}.b-orange{background:#fde3c4;border-color:#e08e1f}
+.chip{position:absolute;top:-10px;right:12px;font-size:9.5px;font-weight:800;letter-spacing:.04em;padding:1px 6px;border-radius:99px;color:#fff}
+.chip.new{background:#1f9d57}.chip.chg{background:#d98a12}
+svg{position:absolute;left:0;top:0;pointer-events:none;z-index:3;overflow:visible}
+svg path{fill:none;stroke:#1a2547;stroke-width:1.7;stroke-dasharray:6 5}
+svg text{font-size:12px;font-style:italic;fill:#2a3763;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+footer{padding:14px 28px 22px}
+.legend{display:flex;gap:26px;align-items:center;font-size:14px;margin-bottom:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:34px;height:18px;border-radius:4px;border:2px solid;vertical-align:middle;margin-right:8px}
+.legend .ln{display:inline-block;width:34px;border-top:2px dashed #1a2547;vertical-align:middle;margin-right:8px}
+.legend .chip{position:static;display:inline-block;margin-right:8px}
+footer p{font-size:14px;line-height:1.55;color:#2a3350}
+</style>
+</head>
+<body>
+<header class="t"><h1>Timed Funding Outreach Engine: Components Map</h1><p>Rohit, accelerator program recruitment | seed and pre-seed funding announcements | draft-only | updated for the current build (GitHub Actions every 3 hours, editable Settings, Telegram reminder)</p></header>
+<div id="map">
+  <div class="cols"><div>Actor</div><div>Trigger</div><div>Input</div><div>Context</div><div>Processing</div><div>AI</div><div>Output</div><div></div></div>
+  <div id="rows"></div>
+  <svg id="edges"></svg>
+</div>
+<footer>
+  <div class="legend">
+    <span><i style="background:#f6d3d3;border-color:#d64a4a"></i>AI step (Gemini)</span>
+    <span><i style="background:#fbefb8;border-color:#d6a620"></i>Plain code or stored data (no AI)</span>
+    <span><i style="background:#fde3c4;border-color:#e08e1f;border-style:dashed"></i>Human only (dashed row)</span>
+    <span><span class="ln"></span>Data flow</span>
+    <span><span class="chip new">NEW</span>added since the first map</span>
+    <span><span class="chip chg">CHANGED</span>works differently now</span>
+  </div>
+  <p>One entry point: GitHub Actions (every 3 hours) or the Run-now button calls /api/run. A run is a chain of Vercel functions (ingest, read, draft), each with its own 300 s allowance; each hands over to the next. Gemini never starts itself: the run calls it. Every Gemini step reads its settings from Supabase.</p>
+  <p>Order: lock, news, read queue, memory check, Gemini read + score, code decides, only passes get an email lookup, Gemini drafts, Gmail + dashboard, Telegram reminder, Rohit. Reading the dashboard is public; every action that changes data needs the access code.</p>
+</footer>
+<script>
+// rows: actor, small label, colour; boxes: id, col (0 trigger .. 5 output), colour, tag, title, text
+const ROWS=[
+ {a:"GitHub Actions",s:"Trigger + run guard",c:"blue"},
+ {a:"News sources",s:"Live data",c:"green"},
+ {a:"Vercel API",s:"/api/run: read queue",c:"yellow"},
+ {a:"Supabase",s:"Rubric + memory + log",c:"yellow"},
+ {a:"Gemini Flash",s:"AI: read + score",c:"red"},
+ {a:"Vercel API",s:"/api/run: decide",c:"yellow"},
+ {a:"Hunter + site",s:"Context: email, homepage, website",c:"green"},
+ {a:"Gemini Flash",s:"AI: write the draft",c:"red"},
+ {a:"Dashboard",s:"Supabase + Vercel",c:"blue"},
+ {a:"Gmail",s:"Drafts folder",c:"lav"},
+ {a:"Telegram",s:"Reminder to Rohit",c:"green"},
+ {a:"Review Gate",s:"Rohit",c:"orange"},
+];
+const BOX={
+ trig:{r:0,c:0,k:"blue",t:"Every 3 hours / Run now",tag:"chg",x:"GitHub Actions calls /api/run with a secret. The Run-now button needs the access code. Both start one run."},
+ guard:{r:0,c:1,k:"blue",t:"Run guard (code)",tag:"chg",x:"Lock in Supabase: one run at a time. Locked = run skipped, logged. Stages (ingest, read, draft) are separate 300 s functions. Caps: articles, Gemini calls, Hunter lookups per run."},
+ news:{r:1,c:1,k:"green",t:"Funding news (RSS)",tag:"chg",x:"9 feeds, editable in Supabase (ET Startups added). Saves published_at + first_seen_at. Scheduled runs read unread articles; Run now reads all."},
+ queue:{r:2,c:4,k:"yellow",t:"Read queue (code)",tag:"chg",x:"No keyword filter any more: every article is read, newest first, up to the articles-per-run limit. The look-back window is judged after reading, by the rubric."},
+ rubric:{r:3,c:2,k:"yellow",t:"Rubric + settings",tag:"chg",x:"Rohit edits in Settings: weights, pass mark, look-back, sectors and countries picked from lists. Or in Supabase. No code change. Only scoring edits bump the version."},
+ memory:{r:3,c:3,k:"yellow",t:"Memory + log",x:"Seen this article or startup? Repeats skipped before AI. Every outcome + reason saved. Gemini error: not marked seen, retried next run."},
+ read:{r:4,c:4,k:"red",t:"Gemini: read + score",x:"Temperature 0. Merges articles on one startup. Article text only. 1 Extract: name, site, stage, amount 2 Mark each rubric item + quote (code checks the quote is real)."},
+ decide:{r:5,c:3,k:"yellow",t:"Code: add up + decide",x:"Gates (stage, look-back) + sector/geography reject + score vs pass mark. Already drafted: stop. Reject: saved with reason (Rejected tab, Overrule)."},
+ email:{r:6,c:2,k:"green",t:"Email + site (pass only)",tag:"chg",x:"1 Hunter.io, verified only (score 100; cap per run) 2 else the startup's own contact page (unverified, flagged) 3 homepage text for the draft. None found: To left blank."},
+ gsearch:{r:6,c:4,k:"red",t:"Gemini: find website (optional)",tag:"chg",x:"Google Search finds a startup's website only when the article has none. Used if the search quota allows. Never used to guess emails."},
+ write:{r:7,c:4,k:"red",t:"Gemini: write the draft",x:"Only article + site text. ONE contact from the list, none made up. No funding promise. Inferred points flagged. Wording from the draft settings."},
+ dash:{r:8,c:5,k:"blue",t:"Dashboard on Vercel",tag:"chg",x:"Public, read-only: Today, Drafts (To review / Approved / Done, by Verified / Unverified / No address), Rejected, Sources, Runs & health, Settings, Account. Changes need the access code."},
+ gmail:{r:9,c:5,k:"lav",t:"Gmail draft",tag:"chg",x:"In Rohit's drafts, never auto-sent. To: only if Hunter-verified. Open Gmail draft opens the exact email; Restore in Gmail if deleted. Gmail fails: kept in Supabase, retried."},
+ tele:{r:10,c:5,k:"green",t:"Telegram reminder",tag:"new",x:"After a run writes new drafts: one message to Rohit with the startup names and a link to Drafts. No emails, no draft text. Chat connected in Settings > Notifications."},
+ human:{r:11,c:5,k:"orange",t:"Human only",tag:"chg",x:"Gets the Telegram message, reads the dashboard + Gmail draft. Edits, sends or skips. Approves or marks done. Can overrule a reject. Edits the rubric in Settings."},
+};
+const EDGES=[
+ {f:"trig",fs:"r",t:"guard",ts:"l"},
+ {f:"guard",fs:"b",t:"news",ts:"t",l:"lock taken",lx:34},
+ {f:"news",fs:"r",t:"queue",ts:"t",l:"all articles in the feeds",lx:-300,ly:-10},
+ {f:"queue",fs:"b",t:"memory",ts:"t",l:"check: seen before?",lx:10,ly:2},
+ {f:"memory",fs:"r",t:"read",ts:"t",l:"new startups only",fo:14,lx:-55,ly:18},
+ {f:"rubric",fs:"b",t:"read",ts:"l",l:"criteria + weights",lx:-120,ly:-8},
+ {f:"read",fs:"b",t:"decide",ts:"r",l:"facts + marks",lx:12,ly:-4},
+ {f:"decide",fs:"t",t:"memory",ts:"b",l:"save outcome",lx:10,ly:-48},
+ {f:"decide",fs:"b",t:"email",ts:"t",l:"pass only",lx:-50,ly:-6},
+ {f:"email",fs:"r",t:"gsearch",ts:"l",both:1,l:"no website known? ask Gemini Search",lx:-100,ly:-10},
+ {f:"email",fs:"b",t:"write",ts:"l",l:"emails + page text",lx:90,ly:-8},
+ {f:"write",fs:"b",t:"dash",ts:"l",fo:50,l:"scores, flags",seg:0,lx:8,ly:0},
+ {f:"write",fs:"b",t:"gmail",ts:"l",fo:-50,l:"the draft",seg:1,lx:-30,ly:-8},
+ {f:"gmail",fs:"b",t:"tele",ts:"t",l:"new drafts written",lx:12,ly:2},
+ {f:"tele",fs:"b",t:"human",ts:"t",l:"message on Rohit's phone",lx:-150,ly:2},
+ {f:"memory",fs:"r",t:"dash",ts:"t",fo:-14,l:"dashboard reads the log",seg:0,lx:-60,ly:-6},
+ {f:"human",fs:"l",t:"rubric",ts:"l",loop:"left",l:"Rohit edits the rubric in Settings (no code change)",seg:0,lx:-60,ly:-8},
+ {f:"human",fs:"r",t:"dash",ts:"r",loop:"right",l:"status",lx:6,ly:0},
+];
+const COLW=271,LABW=212,ROWH=150,HEAD=56;
+const rowsEl=document.getElementById("rows");
+ROWS.forEach((r,i)=>{rowsEl.insertAdjacentHTML("beforeend",`<div class="row r-${r.c}"><div class="actor"><b>${r.a}</b><small>${r.s}</small></div><div class="bg"></div></div>`)});
+const map=document.getElementById("map");
+const els={};
+for(const [id,b] of Object.entries(BOX)){
+  const d=document.createElement("div");d.className="box b-"+b.k;
+  d.style.left=(LABW+b.c*COLW+(COLW-247)/2+(b.c===0?0:0))+"px";
+  d.style.top=(HEAD+b.r*ROWH+9)+"px";
+  d.innerHTML=(b.tag?`<span class="chip ${b.tag}">${b.tag==="new"?"NEW":"CHANGED"}</span>`:"")+`<h3>${b.t}</h3><p>${b.x}</p>`;
+  map.appendChild(d);els[id]=d;
+}
+map.style.height=(HEAD+ROWS.length*ROWH)+"px";
+const svg=document.getElementById("edges");svg.setAttribute("width",1900);svg.setAttribute("height",HEAD+ROWS.length*ROWH);
+svg.innerHTML=`<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1a2547" stroke="none" style="stroke-dasharray:none"/></marker></defs>`;
+const R=id=>{const e=els[id];return{l:e.offsetLeft,t:e.offsetTop,r:e.offsetLeft+e.offsetWidth,b:e.offsetTop+e.offsetHeight,cx:e.offsetLeft+e.offsetWidth/2,cy:e.offsetTop+e.offsetHeight/2}};
+function port(id,side,off=0){const r=R(id);return side==="r"?[r.r,r.cy+off]:side==="l"?[r.l,r.cy+off]:side==="b"?[r.cx+off,r.b]:[r.cx+off,r.t]}
+for(const e of EDGES){
+  const a=R(e.f),b=R(e.t);let pts;
+  if(e.loop==="left"){const y=a.cy;const xl=b.l-26;pts=[[a.l,y],[xl,y],[xl,b.cy],[b.l,b.cy]]}
+  else if(e.loop==="right"){const x=a.r+22;pts=[[a.r,a.cy],[x,a.cy],[x,b.cy],[b.r,b.cy]]}
+  else{
+    const [x1,y1]=port(e.f,e.fs,e.fo||0),[x2,y2]=port(e.t,e.ts,e.to||0);
+    if(e.fs==="b"&&e.ts==="t")pts=Math.abs(x1-x2)<2?[[x1,y1],[x2,y2]]:[[x1,y1],[x1,(y1+y2)/2],[x2,(y1+y2)/2],[x2,y2]];
+    else if(e.fs==="t"&&e.ts==="b")pts=Math.abs(x1-x2)<2?[[x1,y1],[x2,y2]]:[[x1,y1],[x1,(y1+y2)/2],[x2,(y1+y2)/2],[x2,y2]];
+    else if(e.fs==="r"&&e.ts==="l")pts=Math.abs(y1-y2)<2?[[x1,y1],[x2,y2]]:[[x1,y1],[(x1+x2)/2,y1],[(x1+x2)/2,y2],[x2,y2]];
+    else if(e.fs==="r"&&e.ts==="t")pts=[[x1,y1],[x2,y1],[x2,y2]];
+    else if(e.fs==="b"&&(e.ts==="l"||e.ts==="r"))pts=[[x1,y1],[x1,y2],[x2,y2]];
+    else pts=[[x1,y1],[x2,y2]];
+  }
+  const d="M"+pts.map(p=>p.join(" ")).join(" L");
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");path.setAttribute("d",d);path.setAttribute("marker-end","url(#a)");if(e.both)path.setAttribute("marker-start","url(#a)");svg.appendChild(path);
+  if(e.l){
+    // label on the longest segment
+    let best=0,bi=0;for(let i=0;i<pts.length-1;i++){const L=Math.abs(pts[i+1][0]-pts[i][0])+Math.abs(pts[i+1][1]-pts[i][1]);if(L>best){best=L;bi=i}}if(e.seg!==undefined)bi=e.seg;
+    const mx=(pts[bi][0]+pts[bi+1][0])/2,my=(pts[bi][1]+pts[bi+1][1])/2;
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x",mx+(e.lx||0));t.setAttribute("y",my+(e.ly||0));t.textContent=e.l;svg.appendChild(t);
+  }
+}
+</script>
+</body>
+</html>
