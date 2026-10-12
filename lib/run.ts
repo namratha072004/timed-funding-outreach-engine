@@ -372,16 +372,17 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
 
         let contacts: Contact[] = [];
         let homepage = "";
-        // article-evidenced domain (s.domain) may use Hunter; a name-based guess (s.website only) is contact-page only
+        // domain from the article (s.domain) or, failing that, a homepage-checked guess from the startup name
         let siteDomain: string | null = s.domain ?? domainOf(s.website);
         if (!siteDomain) {
           siteDomain = await guessWebsite(s.name);
           if (siteDomain) await db.from("startups").update({ website: `https://${siteDomain}` }).eq("id", s.id);
         }
         if (siteDomain) {
-          if (s.domain && takeHunter()) {
+          if (takeHunter()) {
             try {
-              contacts = await hunterVerified(s.domain!);
+              // an article-evidenced domain is trusted; a name-guessed one needs Hunter's organization to match the startup
+              contacts = await hunterVerified(siteDomain, s.domain ? undefined : s.name);
             } catch (e) {
               addError(`hunter ${s.domain}: ${msg(e)}`);
             }

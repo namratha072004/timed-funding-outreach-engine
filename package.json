@@ -12,7 +12,8 @@
     "test:lock": "tsx --env-file=.env.local scripts/test-lock.ts",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "test:e2e": "node --env-file=.env.local scripts/e2e.mjs",
-    "screenshots": "node --env-file=.env.local scripts/screenshots.mjs"
+    "screenshots": "node --env-file=.env.local scripts/screenshots.mjs",
+    "enrich:drafts": "tsx --env-file=.env.local scripts/enrich-drafts.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

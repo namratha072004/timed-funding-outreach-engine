@@ -132,21 +132,37 @@ export async function hunterAccount(): Promise<{ used: number; available: number
   return typeof s?.used === "number" && typeof s?.available === "number" ? { used: s.used, available: s.available } : null;
 }
 
-/** Hunter domain search, verified ("valid") addresses only. */
-export async function hunterVerified(domain: string): Promise<Contact[]> {
+const alnum = (s: string) => s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+/** Hunter's organization must be the startup (used when the domain was only guessed from the name). */
+export function orgMatches(org: string | null | undefined, startupName: string): boolean {
+  const o = alnum(org ?? "");
+  const n = alnum(startupName);
+  return o.length >= 3 && n.length >= 3 && (o.includes(n) || n.includes(o));
+}
+
+async function hunterVerify(email: string): Promise<boolean> {
+  const r = await fetch(`https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}`, { headers: { "X-API-KEY": process.env.HUNTER_API_KEY! }, signal: AbortSignal.timeout(30_000) });
+  if (!r.ok) return false;
+  return (await r.json())?.data?.status === "valid";
+}
+
+/**
+ * Hunter domain search, then Hunter's own verifier on the best candidates. Only addresses Hunter reports as "valid" are returned.
+ * `expectName`: when the domain was guessed, Hunter's organization must match this name or nothing is returned.
+ */
+export async function hunterVerified(domain: string, expectName?: string): Promise<Contact[]> {
   const key = process.env.HUNTER_API_KEY;
   if (!key) throw new Error("HUNTER_API_KEY not set");
   const r = await fetch(`https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=10`, { headers: { "X-API-KEY": key }, signal: AbortSignal.timeout(15_000) });
   if (!r.ok) throw new Error(`Hunter HTTP ${r.status}`);
-  const emails: any[] = (await r.json())?.data?.emails ?? [];
-  return emails
-    .filter((e) => e?.value && e?.verification?.status === "valid")
-    .slice(0, 5)
-    .map((e) => ({
-      email: String(e.value).toLowerCase(),
-      name: [e.first_name, e.last_name].filter(Boolean).join(" ") || null,
-      role: e.position ?? null,
-      source: "hunter" as const,
-      verified: true,
-    }));
+  const data = (await r.json())?.data;
+  if (expectName && !orgMatches(data?.organization, expectName)) return [];
+  const emails: any[] = (data?.emails ?? []).filter((e: any) => e?.value).sort((a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0));
+  const toContact = (e: any): Contact => ({ email: String(e.value).toLowerCase(), name: [e.first_name, e.last_name].filter(Boolean).join(" ") || null, role: e.position ?? null, source: "hunter", verified: true });
+  const out: Contact[] = emails.filter((e) => e.verification?.status === "valid").map(toContact);
+  for (const e of emails.filter((x) => x.verification?.status !== "valid" && (x.confidence ?? 0) >= 50).slice(0, 3)) {
+    if (out.length >= 2) break;
+    if (await hunterVerify(e.value).catch(() => false)) out.push(toContact(e));
+  }
+  return out.slice(0, 3);
 }

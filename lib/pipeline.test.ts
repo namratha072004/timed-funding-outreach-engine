@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { domainCandidates, robotsAllows, verifyWebsite, type Contact } from "./contacts";
+import { domainCandidates, orgMatches, robotsAllows, verifyWebsite, type Contact } from "./contacts";
 import { resolveOutreach, validateDraft, writeDraft, type DraftContext } from "./draft";
 import { parseFeed } from "./feeds";
 import { filterItem, keywordMatcher } from "./filter";
@@ -42,6 +42,16 @@ describe("domainCandidates", () => {
   it("builds name-based domains and skips tiny names", () => {
     expect(domainCandidates("Sorry Sugar")).toEqual(["sorrysugar.com", "sorrysugar.in", "sorrysugar.ai", "sorrysugar.io", "sorrysugar.co"]);
     expect(domainCandidates("Zi")).toEqual([]);
+  });
+});
+
+describe("orgMatches (guarded Hunter use on a guessed domain)", () => {
+  it("accepts the same company and rejects a different one", () => {
+    expect(orgMatches("Zomint", "Zomint")).toBe(true);
+    expect(orgMatches("Zomint Technologies Pvt Ltd", "Zomint")).toBe(true);
+    expect(orgMatches("Arrowhead Pharmaceuticals", "Arrowhead AI")).toBe(false);
+    expect(orgMatches(null, "Zomint")).toBe(false);
+    expect(orgMatches("Zi", "Zi")).toBe(false);
   });
 });
 

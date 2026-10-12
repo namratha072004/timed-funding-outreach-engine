@@ -59,3 +59,16 @@ export const gmailLink = (stored: string | null): string => {
   const msg = stored?.split(":")[1];
   return msg ? `https://mail.google.com/mail/u/0/#drafts?compose=${msg}` : "https://mail.google.com/mail/u/0/#drafts";
 };
+
+/** Replace the content of an existing draft (still a draft; nothing is sent). */
+export async function updateGmailDraft(stored: string, o: { to: string | null; subject: string; body: string }): Promise<void> {
+  const id = stored.split(":")[0];
+  const token = await accessToken();
+  const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ message: { raw: buildRaw(o) } }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!r.ok) throw new Error(`Gmail draft update failed (HTTP ${r.status})`);
+}
