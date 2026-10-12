@@ -59,10 +59,13 @@ export async function runsData() {
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
+  // drafts written today that still stand (the run counters also count drafts that were later moved to Rejected as older than 24 h)
+  const dayStart = new Date(`${today}T00:00:00+05:30`).toISOString();
+  const standing = (await db.from("drafts").select("id, startups!inner(status)", { count: "exact", head: true }).gte("created_at", dayStart).neq("startups.status", "rejected")).count ?? 0;
   const hunterRuns = all.filter((r) => new Date(r.started_at) >= monthStart).reduce((a, r) => a + (r.counts?.hunter_lookups ?? 0), 0);
   return {
     runs: all.slice(0, 20).map((r) => ({ ...r, view: runStatus(r, lock.locked) })),
-    today: { newStartups: sum("startups_new"), drafted: sum("drafted"), rejected: sum("rejected") },
+    today: { newStartups: sum("startups_new"), drafted: standing, rejected: sum("rejected") },
     hunter: await hunterUsage(hunterRuns),
     lock,
   };
