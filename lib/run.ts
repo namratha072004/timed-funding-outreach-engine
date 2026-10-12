@@ -5,7 +5,7 @@ import { decide } from "./decide";
 import { writeDraft } from "./draft";
 import { readAndScore, type ArticleInput, type Extraction } from "./extract";
 import { fetchFeed, type FeedItem, type FeedRow } from "./feeds";
-import { filterItem, keywordMatcher } from "./filter";
+
 import { Budget, geminiSearch, setGeminiDeadline } from "./gemini";
 import { createGmailDraft } from "./gmail";
 import { acquireLock, LEASE_SECONDS, releaseLock } from "./lock";
@@ -22,7 +22,7 @@ const HOUR = 3_600_000;
 export const STEPS = [
   { key: "lock", label: "Lock taken" },
   { key: "fetch", label: "Fetching news" },
-  { key: "filter", label: "Keyword filter (code)" },
+  { key: "filter", label: "Listing unread articles" },
   { key: "memory", label: "Memory check" },
   { key: "read", label: "Gemini reads + scores" },
   { key: "decide", label: "Code decides" },
@@ -160,33 +160,19 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
     }
     await step("fetch", `${feedRows?.length ?? 0} feeds → ${c.fetched} items, ${c.new_articles} new`);
 
-    // ---- keyword filter + memory check
-    await step("filter", "applying keyword and age filter", "active");
-    const match = keywordMatcher(rubric.fundingKeywords);
+    // ---- memory check: every article not yet read is read. No keyword or age pre-filter: the rubric's recency gate and stage gate decide after reading.
+    await step("filter", "listing every unread article (no pre-filter)", "active");
     const since = new Date(now.getTime() - 30 * 24 * HOUR).toISOString();
     const { data: pending } = await db
       .from("articles")
       .select("*")
-      .or("status.in.(new,error),and(status.eq.filtered_out,error.like.older than%)")
+      .in("status", ["new", "error"])
       .gte("first_seen_at", since)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(1000);
-    const candidates: Row[] = [];
-    const toFilter: { id: number; reason: string }[] = [];
-    for (const a of pending ?? []) {
-      const item = feedItems.get(a.canonical_url);
-      const v = filterItem(
-        { title: a.title ?? "", summary: item ? `${item.summary}\n${item.content.slice(0, 1500)}` : "", publishedAt: a.published_at ? new Date(a.published_at) : null },
-        { match, lookbackHours: rubric.lookbackHours, now, checkKeywords: !!item || (a.status === "new" && newByUrl.has(a.canonical_url)) },
-      );
-      if (v.keep) {
-        candidates.push(a);
-        if (a.status === "filtered_out") await db.from("articles").update({ status: "new", error: null }).eq("id", a.id);
-      } else if (a.status !== "filtered_out" || a.error !== v.reason) toFilter.push({ id: a.id, reason: v.reason });
-    }
-    for (const f of toFilter) await db.from("articles").update({ status: "filtered_out", error: f.reason }).eq("id", f.id);
-    c.filtered = toFilter.length;
-    await step("filter", `${c.fetched} items → ${candidates.length} look like funding news in the last ${rubric.lookbackHours}h`);
+      .limit(2000);
+    const candidates: Row[] = pending ?? [];
+    c.filtered = 0;
+    await step("filter", `${c.fetched} feed items, ${candidates.length} not read yet. All will be read; the ${rubric.lookbackHours}h window is checked by the rubric after reading`);
 
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;
