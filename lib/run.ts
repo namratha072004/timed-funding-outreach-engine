@@ -18,7 +18,7 @@ import type { Rubric } from "./types";
 export const WALL_CLOCK_MS = 240_000;
 export const CONCURRENCY = 3; // drafting (email lookups, Gmail)
 /** Reading is mostly waiting on Gemini, so more articles are read at once. Reading stops at 170 s so drafting keeps time. */
-export const READ_CONCURRENCY = 8;
+export const READ_CONCURRENCY = 16;
 export const READ_DEADLINE_MS = 170_000;
 const HOUR = 3_600_000;
 
@@ -247,6 +247,8 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
       if (!loaded.length) return;
       if (!budget.take()) return;
       c.read += loaded.length;
+      steps.find((s) => s.key === "read")!.detail = `${c.read} of ${candidates.length} articles read`;
+      await flush();
       let x: Extraction;
       try {
         x = await readAndScore(rubric, loaded, loaded.flatMap((l) => l.links));
