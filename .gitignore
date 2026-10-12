@@ -9,3 +9,7 @@ scripts/calibration/cache/
 design/shots/
 .DS_Store
 .env*
+
+# design documents kept on this computer only
+design/Components_Map.*
+design/Nine_Checks.*
