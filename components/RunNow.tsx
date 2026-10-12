@@ -43,8 +43,13 @@ export default function RunNow() {
     timer.current = setInterval(poll, 1500);
     try {
       const res = await fetch("/api/run", { method: "POST" });
-      if (res.status === 409) setMsg("Skipped: a run is already in progress.");
-      else if (!res.ok) setMsg(`The run could not start (HTTP ${res.status}).`);
+      if (res.status === 409) {
+        setMsg("Skipped: a run is already in progress.");
+        stop();
+        setBusy(false);
+        return;
+      }
+      if (!res.ok) setMsg(`The run could not start (HTTP ${res.status}).`);
       await poll();
     } catch {
       setMsg("The connection dropped. The run may still be going; this window keeps checking.");

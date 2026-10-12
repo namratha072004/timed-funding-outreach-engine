@@ -5,7 +5,7 @@ import { bearerOk, COOKIE, cookieOk } from "./lib/auth";
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname === "/unlock" || pathname === "/api/unlock") return NextResponse.next();
-  if (pathname === "/api/run" && bearerOk(req.headers.get("authorization"))) return NextResponse.next();
+  if (pathname.startsWith("/api/run") && bearerOk(req.headers.get("authorization"))) return NextResponse.next();
   if (await cookieOk(req.cookies.get(COOKIE)?.value)) return NextResponse.next();
   if (pathname.startsWith("/api/")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   return NextResponse.redirect(new URL("/unlock", req.url));

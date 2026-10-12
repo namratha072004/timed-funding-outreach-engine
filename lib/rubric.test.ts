@@ -174,3 +174,15 @@ describe("parseRubric", () => {
     expect(() => parseRubric(raw)).toThrow(/no active criteria/);
   });
 });
+
+import { nextAfterRead } from "./run";
+describe("nextAfterRead (the chain of read stages)", () => {
+  it("goes to drafting when the queue is empty", () => expect(nextAfterRead({ queueLeft: 0, processedThisStage: 5, stalls: 1, budgetLeft: 10 })).toEqual({ next: "draft", stalls: 0, dropQueue: false }));
+  it("reads again in a new function when articles are left and progress was made", () => expect(nextAfterRead({ queueLeft: 40, processedThisStage: 200, stalls: 0, budgetLeft: 100 })).toEqual({ next: "read", stalls: 0, dropQueue: false }));
+  it("gives up after two stages with no progress, so the chain cannot loop forever", () => {
+    const first = nextAfterRead({ queueLeft: 5, processedThisStage: 0, stalls: 0, budgetLeft: 100 });
+    expect(first).toEqual({ next: "read", stalls: 1, dropQueue: false });
+    expect(nextAfterRead({ queueLeft: 5, processedThisStage: 0, stalls: first.stalls, budgetLeft: 100 })).toEqual({ next: "draft", stalls: 2, dropQueue: true });
+  });
+  it("drops the queue when the Gemini call budget is used up", () => expect(nextAfterRead({ queueLeft: 9, processedThisStage: 3, stalls: 0, budgetLeft: 0 })).toEqual({ next: "draft", stalls: 0, dropQueue: true }));
+});

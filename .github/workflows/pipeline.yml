@@ -1,8 +1,9 @@
 name: Funding pipeline (every 3 hours)
 
-# Vercel Hobby can only run a cron once a day, so GitHub Actions calls the app's /api/run every 3 hours.
-# The run reads the feeds, judges new articles on the rubric (24 h window), de-duplicates against memory,
-# and writes drafts to Gmail Drafts. It never sends email.
+# Vercel Hobby can only run a cron once a day, so GitHub Actions starts the pipeline every 3 hours.
+# /api/run answers at once and the run continues as a chain of stages, each its own function with its own 300 s:
+#   ingest -> read (repeats until every article is read) -> draft.
+# This job then watches the run until it finishes. It never sends email; drafts only.
 on:
   schedule:
     - cron: "0 */3 * * *" # every 3 hours, UTC (GitHub may start it a few minutes late)
@@ -15,17 +16,29 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 40
     steps:
-      - name: Call /api/run
+      - name: Start the run and wait for it to finish
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
+          auth="Authorization: Bearer ${CRON_SECRET}"
           out=$(mktemp)
-          code=$(curl -sS -m 300 -o "$out" -w '%{http_code}' -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL}/api/run")
-          echo "HTTP ${code}"
-          cat "$out"; echo
-          # 200 = ran, 409 = another run was already in progress (the lock skipped this one): both are fine
-          if [ "$code" != "200" ] && [ "$code" != "409" ]; then exit 1; fi
+          code=$(curl -sS -m 60 -o "$out" -w '%{http_code}' -H "$auth" "${APP_URL}/api/run")
+          echo "start: HTTP ${code} $(cat "$out")"
+          if [ "$code" = "409" ]; then echo "another run is already in progress (the lock skipped this one): fine"; exit 0; fi
+          if [ "$code" != "202" ]; then exit 1; fi
+          runId=$(jq -r .runId "$out")
+          for i in $(seq 1 160); do
+            sleep 15
+            curl -sS -m 30 -H "$auth" "${APP_URL}/api/run/status?runId=${runId}" -o "$out" || continue
+            finished=$(jq -r '.run.finished_at // empty' "$out")
+            echo "$(date -u +%T) read $(jq -r '.run.counts.read' "$out")/$(jq -r '.run.counts.candidates' "$out"), stage $(jq -r '.run.counts.stages' "$out"), drafted $(jq -r '.run.counts.drafted' "$out")"
+            if [ -n "$finished" ]; then
+              jq -c '.run | {status, counts: (.counts | del(.steps, .holder)), errors}' "$out"
+              [ "$(jq -r '.run.status' "$out")" = "ok" ] && exit 0 || exit 1
+            fi
+          done
+          echo "the run did not finish within 40 minutes"; exit 1

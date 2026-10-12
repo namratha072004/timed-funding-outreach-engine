@@ -3,8 +3,6 @@
 //  run 2: lookback_hours restored to 24, immediately after run 1 -> must create ZERO new drafts for known startups
 //  run 3: lookback_hours = 168 again -> widening the window must not re-draft anything already drafted
 // lookback_hours is always restored to its original value. Prints counts only, never secrets.
-import { Agent, fetch as ufetch } from "undici";
-const agent = new Agent({ headersTimeout: 600_000, bodyTimeout: 600_000 });
 const base = process.env.BASE_URL || "http://localhost:3100";
 const sb = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const H = { apikey: key, Authorization: `Bearer ${key}`, "content-type": "application/json" };
@@ -17,13 +15,23 @@ const snapshot = async () => {
 };
 const run = async (label) => {
   const t = Date.now();
-  const r = await ufetch(`${base}/api/run`, { dispatcher: agent, headers: { authorization: `Bearer ${process.env.CRON_SECRET}` }, signal: AbortSignal.timeout(600_000) });
-  const j = await r.json();
-  console.log(`\n--- ${label}: HTTP ${r.status}, ${Math.round((Date.now() - t) / 1000)}s`);
-  const { steps, ...c } = j.counts ?? {};
-  console.log(JSON.stringify({ status: j.status, ...c, error_count: j.errors }));
-  if (j.errors) { const [row] = await rest(`runs?id=eq.${j.runId}&select=errors`); console.log("errors:", JSON.stringify(row.errors).slice(0, 1500)); }
-  return j;
+  const auth = { authorization: `Bearer ${process.env.CRON_SECRET}` };
+  const start = await fetch(`${base}/api/run`, { headers: auth });
+  const sj = await start.json();
+  if (start.status !== 202) throw new Error(`could not start a run: HTTP ${start.status} ${JSON.stringify(sj)}`);
+  let run;
+  for (let i = 0; i < 400; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const j = await (await fetch(`${base}/api/run/status?runId=${sj.runId}`, { headers: auth })).json();
+    run = j.run;
+    if (run?.finished_at) break;
+  }
+  if (!run?.finished_at) throw new Error("run did not finish in 20 minutes");
+  console.log(`\n--- ${label}: ${run.status}, ${Math.round((Date.now() - t) / 1000)}s, ${run.counts.stages} stage(s)`);
+  const { steps, holder, started_ms, ...c } = run.counts;
+  console.log(JSON.stringify({ status: run.status, ...c, error_count: run.errors?.length ?? 0 }));
+  if (run.errors?.length) console.log("errors:", JSON.stringify(run.errors).slice(0, 1500));
+  return { status: run.status, counts: run.counts };
 };
 
 const [orig] = await rest("rubric_settings?key=eq.lookback_hours&select=value");

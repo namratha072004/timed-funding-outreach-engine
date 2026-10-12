@@ -1,5 +1,5 @@
 import { serverDb } from "./supabase";
-import { lockState, LEASE_SECONDS } from "./lock";
+import { lockState } from "./lock";
 
 export const IST = "Asia/Kolkata";
 export const fmtTime = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { timeZone: IST, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : "-");
@@ -23,8 +23,9 @@ export async function runBanner() {
   const db = serverDb();
   const [lock, { data }] = await Promise.all([lockState(db), db.from("runs").select("*").order("id", { ascending: false }).limit(1)]);
   const last = data?.[0] ?? null;
-  const running = !!last && !last.finished_at && Date.now() - new Date(last.started_at).getTime() < LEASE_SECONDS * 1000;
-  const failed = !!last && !last.finished_at && !running; // started, never finished: the function was cut off
+  // each stage renews the lock lease, so "unfinished and locked" = still running; "unfinished and the lease ran out" = the chain broke
+  const running = !!last && !last.finished_at && lock.locked;
+  const failed = !!last && !last.finished_at && !lock.locked;
   return { lock, last, running, failed };
 }
 

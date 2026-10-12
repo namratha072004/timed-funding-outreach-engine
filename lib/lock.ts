@@ -19,6 +19,11 @@ export async function acquireLock(db: SupabaseClient, holder: string, seconds = 
   return (data?.length ?? 0) === 1;
 }
 
+/** Each stage renews the lease, so a long chain keeps the lock while a crashed chain still frees itself. */
+export async function extendLock(db: SupabaseClient, holder: string, seconds = LEASE_SECONDS): Promise<void> {
+  await db.from("run_lock").update({ locked_until: new Date(Date.now() + seconds * 1000).toISOString() }).eq("id", 1).eq("holder", holder);
+}
+
 export async function releaseLock(db: SupabaseClient, holder: string): Promise<void> {
   await db.from("run_lock").update({ locked_until: "-infinity", holder: null }).eq("id", 1).eq("holder", holder);
 }
