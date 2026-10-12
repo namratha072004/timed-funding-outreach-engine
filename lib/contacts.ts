@@ -32,19 +32,57 @@ export function domainCandidates(name: string): string[] {
  * or text) contains the startup's name. The result is evidence-checked but still a guess, so it is used for the contact-page
  * route only (To stays blank) and never for Hunter.
  */
+/** Startup name without generic trailing words: "TailBlaze Longevity" -> "tailblaze", "CurvetAI" -> "curvet". At least 5 characters, else the full name. */
+export function coreKey(name: string): string {
+  const full = name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const core = full.replace(/(longevity|technologies|technology|labs|global|health|ai|app|hq|tech|io)$/g, "");
+  return core.length >= 5 ? core : full;
+}
+
+/** True if the site at `domain` is plausibly the startup: its title or text contains the startup's name (or its core name). */
+export async function homepageMatches(domain: string, name: string): Promise<string | null> {
+  const key = coreKey(name);
+  try {
+    const r = await safeFetchText(`https://${domain}`, { maxBytes: 400_000, timeoutMs: 6000, maxRedirects: 2 });
+    if (r.status >= 400) return null;
+    const finalHost = domainOf(r.finalUrl);
+    const text = articleText(r.text).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const title = (r.text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    return finalHost && (title.includes(key) || text.includes(key)) ? finalHost : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function guessWebsite(name: string): Promise<string | null> {
-  const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "");
   for (const d of domainCandidates(name)) {
-    try {
-      const r = await safeFetchText(`https://${d}`, { maxBytes: 400_000, timeoutMs: 5000, maxRedirects: 2 });
-      if (r.status >= 400) continue;
-      const finalHost = domainOf(r.finalUrl);
-      const text = articleText(r.text).toLowerCase().replace(/[^a-z0-9]+/g, "");
-      const title = (r.text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-      if (finalHost && (title.includes(key) || text.includes(key))) return finalHost;
-    } catch {
-      /* next candidate */
-    }
+    const hit = await homepageMatches(d, name);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** Domains mentioned in a Gemini search answer (plain text and grounding source titles). Pure. */
+export function domainsFromAnswer(text: string, chunkTitles: string[] = []): string[] {
+  const out: string[] = [];
+  const add = (s: string) => {
+    const d = domainOf(s.trim().replace(/[),.;:]+$/, ""));
+    if (d && isCandidateWebsite(d) && !out.includes(d)) out.push(d);
+  };
+  for (const m of text.matchAll(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})\b/gi)) add(m[1]!);
+  for (const t of chunkTitles) if (/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(t.trim())) add(t);
+  return out.slice(0, 5);
+}
+
+/**
+ * Web search fallback (Gemini + Google Search grounding, optional). Gemini only proposes domains; each one must
+ * pass the same homepage check as a name guess, so an invented answer is rejected.
+ */
+export async function findWebsiteViaSearch(name: string, hint: string, ask: (p: string) => Promise<{ text: string; titles: string[] }>): Promise<string | null> {
+  const { text, titles } = await ask(`What is the official website domain of the startup "${name}"${hint ? ` (${hint})` : ""}? Reply with only the domain, or "unknown" if you are not sure.`);
+  for (const d of domainsFromAnswer(text, titles)) {
+    const hit = await homepageMatches(d, name);
+    if (hit) return hit;
   }
   return null;
 }

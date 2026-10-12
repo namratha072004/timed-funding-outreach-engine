@@ -139,3 +139,13 @@ export const S = {
   arr: (items: object) => ({ type: "ARRAY", items }),
   obj: (properties: Record<string, object>, required = Object.keys(properties)) => ({ type: "OBJECT", properties, required }),
 };
+
+/** Google Search grounded answer (optional feature, GEMINI_SEARCH_ENABLED=true). Returns text and source titles. */
+export async function geminiSearch(prompt: string): Promise<{ text: string; titles: string[] }> {
+  const j = await geminiRaw({ prompt, grounding: true, temperature: 0 }, { retries: 2 });
+  const c = j?.candidates?.[0];
+  return {
+    text: (c?.content?.parts ?? []).map((p: any) => p.text ?? "").join(""),
+    titles: (c?.groundingMetadata?.groundingChunks ?? []).map((x: any) => String(x?.web?.title ?? "")).filter(Boolean),
+  };
+}

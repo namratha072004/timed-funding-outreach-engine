@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { domainCandidates, orgMatches, robotsAllows, verifyWebsite, type Contact } from "./contacts";
+import { coreKey, domainCandidates, domainsFromAnswer, orgMatches, robotsAllows, verifyWebsite, type Contact } from "./contacts";
 import { resolveOutreach, validateDraft, writeDraft, type DraftContext } from "./draft";
 import { parseFeed } from "./feeds";
 import { filterItem, keywordMatcher } from "./filter";
@@ -52,6 +52,25 @@ describe("orgMatches (guarded Hunter use on a guessed domain)", () => {
     expect(orgMatches("Arrowhead Pharmaceuticals", "Arrowhead AI")).toBe(false);
     expect(orgMatches(null, "Zomint")).toBe(false);
     expect(orgMatches("Zi", "Zi")).toBe(false);
+  });
+});
+
+describe("domainsFromAnswer (search answer parsing)", () => {
+  it("pulls candidate domains and ignores social sites and prose", () => {
+    expect(domainsFromAnswer("The website is credfix.app.")).toEqual(["credfix.app"]);
+    expect(domainsFromAnswer("https://www.desible.ai/ and linkedin.com/company/x")).toEqual(["desible.ai"]);
+    expect(domainsFromAnswer("unknown")).toEqual([]);
+    expect(domainsFromAnswer("see sources", ["tailblaze.in", "Some Title"])).toEqual(["tailblaze.in"]);
+  });
+});
+
+describe("coreKey", () => {
+  it("drops generic suffixes but keeps short names whole", () => {
+    expect(coreKey("TailBlaze Longevity")).toBe("tailblaze");
+    expect(coreKey("CurvetAI")).toBe("curvet");
+    expect(coreKey("Zomint")).toBe("zomint");
+    expect(coreKey("Desible.ai")).toBe("desible");
+    expect(coreKey("Credfix")).toBe("credfix");
   });
 });
 

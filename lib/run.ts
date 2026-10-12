@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadRubric } from "./config";
-import { guessWebsite, hunterAccount, hunterVerified, readSite, verifyWebsite, type Contact } from "./contacts";
+import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterVerified, readSite, verifyWebsite, type Contact } from "./contacts";
 import { decide } from "./decide";
 import { writeDraft } from "./draft";
 import { readAndScore, type ArticleInput, type Extraction } from "./extract";
 import { fetchFeed, type FeedItem, type FeedRow } from "./feeds";
 import { filterItem, keywordMatcher } from "./filter";
-import { Budget, setGeminiDeadline } from "./gemini";
+import { Budget, geminiSearch, setGeminiDeadline } from "./gemini";
 import { createGmailDraft } from "./gmail";
 import { acquireLock, LEASE_SECONDS, releaseLock } from "./lock";
 import { claimDraft, claimStartup, findStartup, pool, type StartupRow } from "./memory";
@@ -376,6 +376,9 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
         let siteDomain: string | null = s.domain ?? domainOf(s.website);
         if (!siteDomain) {
           siteDomain = await guessWebsite(s.name);
+          if (!siteDomain && process.env.GEMINI_SEARCH_ENABLED === "true" && budget.take()) {
+            siteDomain = await findWebsiteViaSearch(s.name, [s.sector, s.location, s.description].filter(Boolean).join(", ").slice(0, 160), geminiSearch).catch(() => null);
+          }
           if (siteDomain) await db.from("startups").update({ website: `https://${siteDomain}` }).eq("id", s.id);
         }
         if (siteDomain) {
