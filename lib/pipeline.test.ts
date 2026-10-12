@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { coreKey, domainCandidates, domainsFromAnswer, orgMatches, robotsAllows, verifyWebsite, type Contact } from "./contacts";
+import { coreKey, isHunterVerified, domainCandidates, domainsFromAnswer, orgMatches, robotsAllows, verifyWebsite, type Contact } from "./contacts";
 import { resolveOutreach, validateDraft, writeDraft, type DraftContext } from "./draft";
 import { parseFeed } from "./feeds";
 import { filterItem, keywordMatcher } from "./filter";
@@ -71,6 +71,16 @@ describe("coreKey", () => {
     expect(coreKey("Zomint")).toBe("zomint");
     expect(coreKey("Desible.ai")).toBe("desible");
     expect(coreKey("Credfix")).toBe("credfix");
+  });
+});
+
+describe("Hunter verified means valid and a score of 100", () => {
+  it("rejects anything less", () => {
+    expect(isHunterVerified({ status: "valid", score: 100 })).toBe(true);
+    expect(isHunterVerified({ status: "valid", score: 94 })).toBe(false);
+    expect(isHunterVerified({ status: "accept_all", score: 100 })).toBe(false);
+    expect(isHunterVerified({ status: "risky", score: 60 })).toBe(false);
+    expect(isHunterVerified(null)).toBe(false);
   });
 });
 

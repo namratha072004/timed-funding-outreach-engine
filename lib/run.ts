@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadRubric } from "./config";
-import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterVerified, readSite, verifyWebsite, type Contact } from "./contacts";
+import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterContacts, readSite, verifyWebsite, type Contact } from "./contacts";
 import { decide } from "./decide";
 import { writeDraft } from "./draft";
 import { readAndScore, type ArticleInput, type Extraction } from "./extract";
@@ -385,14 +385,17 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
           if (takeHunter()) {
             try {
               // an article-evidenced domain is trusted; a name-guessed one needs Hunter's organization to match the startup
-              contacts = await hunterVerified(siteDomain, s.domain ? undefined : s.name);
+              contacts = await hunterContacts(siteDomain, s.domain ? undefined : s.name);
             } catch (e) {
               addError(`hunter ${s.domain}: ${msg(e)}`);
             }
           }
           const site = await readSite(siteDomain);
           homepage = site.homepageText;
-          if (!contacts.length) contacts = site.contacts;
+          // verified Hunter addresses first, then addresses found on the company's own site (unverified), then other Hunter finds (unverified)
+          const hv = contacts.filter((x) => x.verified);
+          const rest = [...site.contacts, ...contacts.filter((x) => !x.verified)];
+          contacts = [...hv, ...rest.filter((x, i) => rest.findIndex((y) => y.email === x.email) === i)].slice(0, 6);
         }
         const out = await writeDraft(
           { startup: { name: s.name, sector: s.sector, location: s.location, stage: s.stage_label, amountText: s.amount_text, investors: s.investors ?? [], founders: s.founders ?? [], description: s.description }, articleText: articleTextAll, homepageText: homepage, contacts, outreach: rubric.outreach },
@@ -400,7 +403,8 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
           () => budget.take(),
         );
         // Gemini picks from the list; if it returned null but contacts exist, code takes the best one (verified first)
-        const chosen = contacts.find((x) => x.email === out.chosenContact) ?? contacts.find((x) => x.verified) ?? contacts[0] ?? null;
+        // a verified address always wins over an unverified one; otherwise Gemini's pick (from the list) stands
+        const chosen = contacts.find((x) => x.verified) ?? contacts.find((x) => x.email === out.chosenContact) ?? contacts[0] ?? null;
         const emailSource = !chosen ? "none" : chosen.verified ? "verified" : "unverified";
         c[`emails_${emailSource}`]++;
         const row = { ...draft, to_email: chosen?.email ?? null, email_source: emailSource, contacts, subject: out.subject, body: out.body, inferred_points: out.inferredPoints, status: "new", updated_at: new Date().toISOString() };

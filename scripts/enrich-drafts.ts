@@ -1,6 +1,6 @@
 // npm run enrich:drafts — fills in emails for existing drafts that have none (drafts only; nothing is sent).
 // Domain: article-evidenced, else a name-based guess checked against the homepage. Hunter (verified) first, else contact page.
-import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterVerified, readSite, type Contact } from "../lib/contacts";
+import { findWebsiteViaSearch, guessWebsite, hunterAccount, hunterContacts, readSite, type Contact } from "../lib/contacts";
 import { geminiSearch } from "../lib/gemini";
 import { updateGmailDraft } from "../lib/gmail";
 import { serverDb } from "../lib/supabase";
@@ -24,9 +24,14 @@ for (const d of drafts ?? []) {
   let contacts: Contact[] = [];
   if (left > 0) {
     left--;
-    try { contacts = await hunterVerified(domain, s.domain ? undefined : s.name); } catch (e) { console.log(`${s.name}: hunter error ${(e as Error).message}`); }
+    try { contacts = await hunterContacts(domain, s.domain ? undefined : s.name); } catch (e) { console.log(`${s.name}: hunter error ${(e as Error).message}`); }
   }
-  if (!contacts.length) contacts = (await readSite(domain)).contacts;
+  {
+    const site = (await readSite(domain)).contacts;
+    const hv = contacts.filter((c) => c.verified);
+    const rest = [...site, ...contacts.filter((c) => !c.verified)];
+    contacts = [...hv, ...rest.filter((x, i) => rest.findIndex((y) => y.email === x.email) === i)].slice(0, 6);
+  }
   const chosen = contacts.find((c) => c.verified) ?? contacts[0] ?? null;
   const source = !chosen ? "none" : chosen.verified ? "verified" : "unverified";
   await db.from("drafts").update({ to_email: chosen?.email ?? null, email_source: source, contacts, updated_at: new Date().toISOString() }).eq("id", d.id);
