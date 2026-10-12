@@ -182,8 +182,17 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
       const { data } = await db.from("articles").select("*").in("status", ["new", "error"]).gte("first_seen_at", since).order("published_at", { ascending: false, nullsFirst: false }).limit(2000);
       candidates = data ?? [];
     }
+    // The rubric's window applied before reading: an article older than lookback_hours would be rejected by the recency gate
+    // anyway, so reading it only costs time. Unknown dates are still read (the page's own date is tried first).
+    c.outside_window = 0;
+    if (rubric.lookbackHours != null) {
+      const cutoff = now.getTime() - rubric.lookbackHours * HOUR;
+      const inside = candidates.filter((a) => !a.published_at || new Date(a.published_at).getTime() >= cutoff);
+      c.outside_window = candidates.length - inside.length;
+      candidates = inside;
+    }
     c.filtered = 0;
-    await step("filter", `${c.fetched} articles in the feeds; ${candidates.length} to read (${readAll ? "all of them" : "new since the last run"}). Judged on the rubric${rubric.lookbackHours == null ? " (no time window)" : `, ${rubric.lookbackHours}h window`}`);
+    await step("filter", `${c.fetched} articles in the feeds; ${c.outside_window} are outside the ${rubric.lookbackHours}h window (not read); ${candidates.length} to read (${readAll ? "all of them" : "new since the last run"}). Judged on the rubric${rubric.lookbackHours == null ? " (no time window)" : `, ${rubric.lookbackHours}h window`}`);
 
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;
