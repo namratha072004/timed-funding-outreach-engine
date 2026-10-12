@@ -175,7 +175,7 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
     }
     candidates.sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     c.filtered = 0;
-    await step("filter", `${candidates.length} articles in the feeds. All will be read; the ${rubric.lookbackHours}h window is checked by the rubric after reading`);
+    await step("filter", `${candidates.length} articles in the feeds. All will be read and judged on the rubric${rubric.lookbackHours == null ? " (no time window)" : `; the ${rubric.lookbackHours}h window is checked after reading`}`);
 
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;

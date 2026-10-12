@@ -77,6 +77,19 @@ describe("decide: gates", () => {
     raw.settings.find((s) => s.key === "lookback_hours")!.value = 168;
     expect(decide(base({ rubric: parseRubric(raw), publishedAt: new Date("2026-10-08T00:00:00Z") })).pass).toBe(true);
   });
+  it("with no time window (lookback_hours = null) nothing is rejected for age or for an unknown date", () => {
+    const raw = rawRubric();
+    raw.settings.find((s) => s.key === "lookback_hours")!.value = null;
+    const r = parseRubric(raw);
+    expect(r.lookbackHours).toBeNull();
+    expect(decide(base({ rubric: r, publishedAt: new Date("2020-01-01T00:00:00Z") })).pass).toBe(true);
+    expect(decide(base({ rubric: r, publishedAt: null })).pass).toBe(true);
+  });
+  it("a missing lookback_hours setting is still an error, not a silent default", () => {
+    const raw = rawRubric();
+    raw.settings = raw.settings.filter((s) => s.key !== "lookback_hours");
+    expect(() => parseRubric(raw)).toThrow(/lookback_hours/);
+  });
   it.each(["other", "unclear"])("rejects stage %s with its quote", (label) => {
     const d = decide(base({ stageLabel: label, stageQuote: "Series A" }));
     expect(d).toMatchObject({ pass: false, hardRule: true, reason: `stage: ${label}`, quote: "Series A" });

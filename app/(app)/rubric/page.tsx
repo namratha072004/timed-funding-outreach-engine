@@ -23,7 +23,7 @@ export default async function RubricPage() {
         <div className="card">
           <h4>Gates and settings</h4>
           <p className="meta" style={{ lineHeight: 1.9 }}>
-            Pass mark: <b>{r.passMark}</b><br />Lookback: <b>{r.lookbackHours} hours</b><br />Stages: <b>{r.allowedStages.join(", ")}</b><br />
+            Pass mark: <b>{r.passMark}</b><br />Time window: <b>{r.lookbackHours == null ? "none (no time limit)" : `${r.lookbackHours} hours`}</b><br />Stages: <b>{r.allowedStages.join(", ")}</b><br />
             Geographies: <b>{r.thesisGeographies.join(", ") || "any"}</b><br />Sectors: <b>{r.thesisSectors.join(", ") || "any"}</b><br />
             Hunter lookups per run: <b>{r.hunterLookupsPerRun}</b><br />Articles per run: <b>{r.maxArticlesPerRun}</b> · Gemini calls per run: <b>{r.maxGeminiCallsPerRun}</b>
           </p>

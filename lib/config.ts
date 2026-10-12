@@ -37,10 +37,12 @@ export function parseRubric(raw: { settings: Row[]; criteria: Row[]; meta: Row; 
     }));
   if (!criteria.length) throw new Error("rubric: no active criteria");
 
+  if (!s.has("lookback_hours")) throw new Error("rubric: missing setting lookback_hours (use null for no time window)");
+  const lookback = s.get("lookback_hours");
   const maxRound = s.get("max_round_size_usd");
   return {
     version: num(raw.meta?.version, "rubric_meta.version"),
-    lookbackHours: num(get("lookback_hours"), "lookback_hours"),
+    lookbackHours: lookback == null ? null : num(lookback, "lookback_hours"),
     allowedStages: list(get("allowed_stages"), "allowed_stages"),
     passMark: num(get("pass_mark"), "pass_mark"),
     thesisSectors: list(get("thesis_sectors"), "thesis_sectors"),

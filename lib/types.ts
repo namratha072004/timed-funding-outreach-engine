@@ -12,7 +12,8 @@ export interface Criterion {
 
 export interface Rubric {
   version: number;
-  lookbackHours: number;
+  /** null = no time window: the recency gate is switched off */
+  lookbackHours: number | null;
   allowedStages: string[];
   passMark: number;
   thesisSectors: string[];

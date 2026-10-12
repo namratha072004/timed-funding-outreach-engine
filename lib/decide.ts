@@ -28,11 +28,13 @@ export function decide(i: DecideInput): Decision {
   const { rubric: r } = i;
   const fails: { reason: string; quote: string | null; hard: boolean }[] = [];
 
-  // recency gate
-  if (!i.publishedAt || Number.isNaN(i.publishedAt.getTime())) {
-    fails.push({ reason: "date unknown", quote: null, hard: true });
-  } else if (i.now.getTime() - i.publishedAt.getTime() > r.lookbackHours * HOUR) {
-    fails.push({ reason: `older than ${r.lookbackHours}h`, quote: null, hard: true });
+  // recency gate (switched off entirely when lookback_hours is null: no time limit, and an unknown date is fine)
+  if (r.lookbackHours != null) {
+    if (!i.publishedAt || Number.isNaN(i.publishedAt.getTime())) {
+      fails.push({ reason: "date unknown", quote: null, hard: true });
+    } else if (i.now.getTime() - i.publishedAt.getTime() > r.lookbackHours * HOUR) {
+      fails.push({ reason: `older than ${r.lookbackHours}h`, quote: null, hard: true });
+    }
   }
 
   // stage gate
