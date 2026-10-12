@@ -85,12 +85,14 @@ describe("layout and style rules", () => {
     for (const f of files) expect(readFileSync(f, "utf8"), f).not.toMatch(/fontSize/);
   });
   it("centres one content column about 1000px wide", () => expect(css).toMatch(/\.wrap \{[^}]*max-width: 1000px;[^}]*margin: 0 auto/));
-  it("uses gradients only on the primary button, the logo, the first welcome stat and the glow", () => {
+  it("uses gradients only on the header light, the primary button (and its shine), the logo, the first welcome stat and the glow", () => {
     const withGradient = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
       .filter(([, , body]) => /gradient\(|var\(--grad\)/.test(body!.replace(/--grad:[^;]+;/g, "")))
       .map(([, sel]) => sel!.trim())
       .sort();
     expect(withGradient).toEqual([
+      ".btn.primary::after",
+      ".top::after",
       '[data-palette="aurora"] .brand',
       '[data-palette="aurora"] .btn.primary',
       '[data-palette="aurora"] .hero .stats .stat:first-child',

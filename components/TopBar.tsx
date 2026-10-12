@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ScrollHide from "./ScrollHide";
 import ThemeControls from "./ThemeControls";
 import type { Tone } from "./ui";
 
@@ -11,6 +12,7 @@ export default function TopBar({ status, palette }: { status: { text: string; to
         <span>{status.text}</span>
       </Link>
       <ThemeControls palette={palette} />
+      <ScrollHide />
     </header>
   );
 }
