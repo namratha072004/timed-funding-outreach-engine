@@ -8,3 +8,4 @@ node_modules
 scripts/calibration/cache/
 design/shots/
 .DS_Store
+.env*
