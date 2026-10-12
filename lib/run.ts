@@ -22,7 +22,7 @@ import type { Rubric } from "./types";
  */
 export type Stage = "ingest" | "read" | "draft";
 /** Within one invocation: stop starting new work here (the hard limit is 300 s). */
-export const STAGE_BUDGET_MS = 230_000;
+export const STAGE_BUDGET_MS = Number(process.env.STAGE_BUDGET_SECONDS ?? 230) * 1000; // STAGE_BUDGET_SECONDS exists only for testing the chain
 export const CONCURRENCY = 3; // drafting (email lookups, Gmail)
 export const READ_CONCURRENCY = 16; // reading is mostly waiting on Gemini
 const HOUR = 3_600_000;
