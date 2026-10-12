@@ -16,13 +16,16 @@ import type { Rubric } from "./types";
 
 /** Hobby plan: 300 s hard limit. Stop starting new work at 240 s. Concurrency 3. */
 export const WALL_CLOCK_MS = 240_000;
-export const CONCURRENCY = 3;
+export const CONCURRENCY = 3; // drafting (email lookups, Gmail)
+/** Reading is mostly waiting on Gemini, so more articles are read at once. Reading stops at 170 s so drafting keeps time. */
+export const READ_CONCURRENCY = 8;
+export const READ_DEADLINE_MS = 170_000;
 const HOUR = 3_600_000;
 
 export const STEPS = [
   { key: "lock", label: "Lock taken" },
   { key: "fetch", label: "Fetching news" },
-  { key: "filter", label: "Listing unread articles" },
+  { key: "filter", label: "Listing all articles" },
   { key: "memory", label: "Memory check" },
   { key: "read", label: "Gemini reads + scores" },
   { key: "decide", label: "Code decides" },
@@ -160,19 +163,19 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
     }
     await step("fetch", `${feedRows?.length ?? 0} feeds → ${c.fetched} items, ${c.new_articles} new`);
 
-    // ---- memory check: every article not yet read is read. No keyword or age pre-filter: the rubric's recency gate and stage gate decide after reading.
-    await step("filter", "listing every unread article (no pre-filter)", "active");
-    const since = new Date(now.getTime() - 30 * 24 * HOUR).toISOString();
-    const { data: pending } = await db
-      .from("articles")
-      .select("*")
-      .in("status", ["new", "error"])
-      .gte("first_seen_at", since)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(2000);
-    const candidates: Row[] = pending ?? [];
+    // ---- every article currently in the feeds is read on EVERY run (scheduled or manual), newest first.
+    // No "already seen" skipping, no keyword or age pre-filter: the rubric's gates decide after reading.
+    // A startup that is already known (drafted or rejected) is recognised after reading and never drafted twice.
+    await step("filter", "listing every article in the feeds", "active");
+    const urls = [...feedItems.keys()];
+    const candidates: Row[] = [];
+    for (let i = 0; i < urls.length; i += 100) {
+      const { data } = await db.from("articles").select("*").in("canonical_url", urls.slice(i, i + 100));
+      candidates.push(...(data ?? []));
+    }
+    candidates.sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
     c.filtered = 0;
-    await step("filter", `${c.fetched} feed items, ${candidates.length} not read yet. All will be read; the ${rubric.lookbackHours}h window is checked by the rubric after reading`);
+    await step("filter", `${candidates.length} articles in the feeds. All will be read; the ${rubric.lookbackHours}h window is checked by the rubric after reading`);
 
     const capped = candidates.slice(0, rubric.maxArticlesPerRun);
     c.candidates = candidates.length;
@@ -298,9 +301,10 @@ export async function executeRun(db: SupabaseClient, opts: { trigger: "cron" | "
       await flush();
     };
 
-    await pool([...groups.values()], CONCURRENCY, processGroup, () => {
-      if (late()) c.deadline_hit = true;
-      return late();
+    await pool([...groups.values()], READ_CONCURRENCY, processGroup, () => {
+      const over = Date.now() > t0 + READ_DEADLINE_MS;
+      if (over) c.deadline_hit = true;
+      return over;
     });
     await step("read", `${c.read} articles read in ${c.groups} groups, ${budget.used} Gemini calls`);
     await step("decide", `${c.passed} pass · ${c.rejected} rejected (saved with reasons) · ${c.duplicates} duplicates skipped`);
