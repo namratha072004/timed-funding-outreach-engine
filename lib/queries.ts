@@ -1,3 +1,4 @@
+import { loadRubric } from "./config";
 import { hunterAccount } from "./contacts";
 import { keywordMatcher } from "./filter";
 import { lockState } from "./lock";
@@ -74,9 +75,33 @@ export async function runsData() {
 /** Number in the Drafts nav item: drafts waiting in To review. */
 export const tabCountsForNav = () => liveDraftCount(["new", "pending_gmail", "draft_failed"]);
 
-/** Drafts in the given statuses whose startup is not rejected. */
-const liveDraftCount = async (statuses: string[]): Promise<number> =>
-  (await serverDb().from("drafts").select("id, startups!inner(status)", { count: "exact", head: true }).in("status", statuses).neq("startups.status", "rejected")).count ?? 0;
+/** Startups (of the given ids) whose first report was published more than the look-back window ago, judged on the article publish date only. No date, or no window: not old. */
+async function olderStartups(ids: number[]): Promise<Set<number>> {
+  const old = new Set<number>();
+  if (!ids.length) return old;
+  const db = serverDb();
+  const hours = (await loadRubric(db)).lookbackHours;
+  if (hours == null) return old;
+  const first = new Map<number, number>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data } = await db.from("articles").select("startup_id,published_at").in("startup_id", ids.slice(i, i + 100)).not("published_at", "is", null);
+    for (const a of data ?? []) {
+      const t = new Date(a.published_at).getTime();
+      if (t < (first.get(a.startup_id) ?? Infinity)) first.set(a.startup_id, t);
+    }
+  }
+  const cutoff = Date.now() - hours * 3_600_000;
+  for (const [id, t] of first) if (t < cutoff) old.add(id);
+  return old;
+}
+
+/** Drafts in the given statuses whose startup is not rejected and whose article was published inside the window (older ones live in the "Older than 24 h" folder). */
+const liveDraftCount = async (statuses: string[]): Promise<number> => {
+  const { data } = await serverDb().from("drafts").select("startup_id, startups!inner(status)").in("status", statuses).neq("startups.status", "rejected");
+  const rows = data ?? [];
+  const old = await olderStartups(rows.map((d: Row) => d.startup_id));
+  return rows.filter((d: Row) => !old.has(d.startup_id)).length;
+};
 
 // ---------------------------------------------------------------------------------------------------- today
 export async function todayData() {
@@ -90,8 +115,8 @@ export async function todayData() {
 }
 
 // ---------------------------------------------------------------------------------------------------- drafts
-export type Tab = "review" | "approved" | "done";
-export const tabOf = (status: string): Tab => (status === "approved" ? "approved" : ["done", "sent", "skipped"].includes(status) ? "done" : "review");
+export type Tab = "review" | "approved" | "done" | "older";
+export const tabOf = (status: string): Exclude<Tab, "older"> => (status === "approved" ? "approved" : ["done", "sent", "skipped"].includes(status) ? "done" : "review");
 
 const criteriaNames = async (): Promise<{ order: string[]; names: Record<string, string> }> => {
   const { data } = await serverDb().from("rubric_criteria").select("key,name,sort_order").order("sort_order");
@@ -108,9 +133,11 @@ export async function draftsData(tab: Tab, kind?: Kind) {
   const [{ data: drafts }, crit] = await Promise.all([db.from("drafts").select("*, startups(*)").order("created_at", { ascending: false }).limit(300), criteriaNames()]);
   // a startup that is (now) rejected, for example "older than 24 hours", keeps its draft but does not show in Drafts
   const rows = (drafts ?? []).filter((d: Row) => d.startups && d.startups.status !== "rejected");
-  const counts: Record<Tab, number> = { review: 0, approved: 0, done: 0 };
-  for (const d of rows) counts[tabOf(d.status)]++;
-  const inTab = rows.filter((d: Row) => tabOf(d.status) === tab);
+  // the Older folder holds every draft whose article was published before the look-back window; the other tabs hold only fresh ones
+  const old = await olderStartups(rows.map((d: Row) => d.startup_id));
+  const counts: Record<Tab, number> = { review: 0, approved: 0, done: 0, older: 0 };
+  for (const d of rows) counts[old.has(d.startup_id) ? "older" : tabOf(d.status)]++;
+  const inTab = rows.filter((d: Row) => (tab === "older" ? old.has(d.startup_id) : !old.has(d.startup_id) && tabOf(d.status) === tab));
   const kindCounts: Record<Kind, number> = { verified: 0, unverified: 0, none: 0 };
   for (const d of inTab) kindCounts[kindOf(d.email_source)]++;
   const shownKind: Kind = kind && KINDS.some((k) => k.key === kind) ? kind : (KINDS.find((k) => kindCounts[k.key] > 0)?.key ?? "verified");
