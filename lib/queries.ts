@@ -178,7 +178,7 @@ export async function draftsData(tab: Tab, kind?: Kind) {
 }
 
 // ---------------------------------------------------------------------------------------------------- rejected
-export async function rejectedData(f: { sector?: string; announced?: string; source?: string }) {
+export async function rejectedData(f: { sector?: string; announced?: string; source?: string; reason?: string }) {
   const db = serverDb();
   const [{ data: sts }, crit] = await Promise.all([db.from("startups").select("*").eq("status", "rejected").order("decided_at", { ascending: false }).limit(500), criteriaNames()]);
   const ids = (sts ?? []).map((s: Row) => s.id);
@@ -205,8 +205,15 @@ export async function rejectedData(f: { sector?: string; announced?: string; sou
       score: s.score as number | null,
     };
   });
-  const rows = all.filter((r) => (!f.sector || r.sector === f.sector) && (!f.source || r.source === f.source) && (maxAge == null || now - new Date(r.announced).getTime() <= maxAge));
+  const filtered = all.filter((r) => (!f.sector || r.sector === f.sector) && (!f.source || r.source === f.source) && (maxAge == null || now - new Date(r.announced).getTime() <= maxAge));
+  // the reason groups ("Older than 24 hours", "Stage is other"…) count what the other filters leave, biggest first
+  const tally = new Map<string, number>();
+  for (const r of filtered) tally.set(r.reason, (tally.get(r.reason) ?? 0) + 1);
+  const reasons = [...tally].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+  const rows = f.reason ? filtered.filter((r) => r.reason === f.reason) : filtered;
   return {
+    reasons,
+    inScope: filtered.length,
     rows,
     total: all.length,
     sectors: [...new Set(all.map((r) => r.sector).filter(Boolean) as string[])].sort(),

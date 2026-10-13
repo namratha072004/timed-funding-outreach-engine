@@ -1,16 +1,31 @@
+import Link from "next/link";
 import FilterBar from "@/components/FilterBar";
 import OverruleButton from "@/components/OverruleButton";
 import { Card, EmptyState, PageHeader, Pub } from "@/components/ui";
 import { rejectedData } from "@/lib/queries";
 import { ago } from "@/lib/time";
 
-export default async function Rejected({ searchParams }: { searchParams: Promise<{ sector?: string; announced?: string; source?: string }> }) {
+export default async function Rejected({ searchParams }: { searchParams: Promise<{ sector?: string; announced?: string; source?: string; reason?: string }> }) {
   const f = await searchParams;
-  const { rows, total, sectors, sources } = await rejectedData(f);
+  const { rows, total, sectors, sources, reasons, inScope } = await rejectedData(f);
+  const href = (reason?: string) => {
+    const p = new URLSearchParams();
+    for (const k of ["sector", "announced", "source"] as const) if (f[k]) p.set(k, f[k]!);
+    if (reason) p.set("reason", reason);
+    return p.size ? `/rejected?${p}` : "/rejected";
+  };
   const any = { value: "", label: "Any" };
   return (
     <>
       <PageHeader title="Rejected" sub="Startups that did not fit. Overrule one if you disagree." />
+      {reasons.length > 0 && (
+        <div className="kinds" role="tablist" aria-label="Reason for rejection">
+          <Link href={href()} className={`kind none${!f.reason ? " on" : ""}`} role="tab" aria-selected={!f.reason}>All <b>{inScope}</b></Link>
+          {reasons.map((r) => (
+            <Link key={r.label} href={href(r.label)} className={`kind none${f.reason === r.label ? " on" : ""}`} role="tab" aria-selected={f.reason === r.label}>{r.label} <b>{r.n}</b></Link>
+          ))}
+        </div>
+      )}
       <FilterBar
         filters={[
           { name: "sector", label: "Sector", options: [any, ...sectors.map((s) => ({ value: s, label: s }))] },
