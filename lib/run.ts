@@ -159,20 +159,37 @@ export async function runStage(db: SupabaseClient, runId: number, stage: Stage):
   const getFeedItems = (): Promise<Map<string, FeedItem>> =>
     (feedItemsMemo ??= (async () => {
       const m = new Map<string, FeedItem>();
+      // every source is tried twice before it counts as failed, and a source that answers with nothing is reported, not hidden
       await pool((feedRows ?? []) as FeedRow[], 4, async (f) => {
-        try {
-          for (const it of await fetchFeed(f)) if (!m.has(it.url)) m.set(it.url, it);
-        } catch (e) {
-          if (stage === "ingest") addError(`feed ${f.name}: ${msg(e)}`);
+        let items: FeedItem[] | null = null;
+        let last: unknown = null;
+        for (let attempt = 0; attempt < 2 && !items; attempt++) {
+          try {
+            items = await fetchFeed(f);
+          } catch (e) {
+            last = e;
+            await sleep(1500);
+          }
         }
+        if (!items) {
+          if (stage === "ingest") addError(`feed ${f.name}: ${msg(last)}`);
+          return;
+        }
+        if (!items.length && stage === "ingest") addError(`feed ${f.name}: answered but listed no articles`);
+        for (const it of items) if (!m.has(it.url)) m.set(it.url, it);
       });
-      // Google search results link to a Google redirect page: swap in the publisher's real address (and drop what cannot be resolved)
-      const viaGoogle = [...m.values()].filter((it) => isGoogleNewsLink(it.url)).slice(0, 90);
+      // Google search results link to a Google redirect page: swap in the publisher's real address; one that cannot be resolved (after a retry) is reported
+      const viaGoogle = [...m.values()].filter((it) => isGoogleNewsLink(it.url));
       if (viaGoogle.length) {
         await pool(viaGoogle, 6, async (it) => {
           m.delete(it.url);
-          const real = await resolveGoogleNewsUrl(it.url);
+          let real = await resolveGoogleNewsUrl(it.url);
+          if (!real) {
+            await sleep(1000);
+            real = await resolveGoogleNewsUrl(it.url);
+          }
           if (real && !m.has(real)) m.set(real, { ...it, url: real });
+          else if (!real && stage === "ingest") addError(`google search result not resolved to the publisher's page: ${it.title.slice(0, 80)}`);
         });
       }
       return m;
