@@ -167,6 +167,8 @@ th.n, td.n { text-align: right; }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s1); padding: var(--s2) 20px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--tint); color: var(--accent); padding: 2px 4px 2px 12px; border-radius: 20px; max-width: 100%; overflow-wrap: anywhere; }
 .chip button { border: 0; background: none; color: inherit; line-height: 1; min-width: 32px; min-height: 32px; border-radius: 50%; }
+.pick { display: flex; gap: var(--s1); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.pick select { min-width: 120px; }
 .addrow { display: flex; gap: var(--s1); padding: 0 20px var(--s2); }
 .addrow input { flex: 1; min-width: 0; }
 .addrow select { flex: 1; min-width: 0; }
