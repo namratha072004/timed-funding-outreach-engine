@@ -19,7 +19,8 @@
     "test:gmail-link": "tsx --env-file=.env.local scripts/test-gmail-link.ts",
     "test:recreate": "tsx --env-file=.env.local scripts/test-recreate.ts",
     "rewrite:drafts": "tsx --env-file=.env.local scripts/rewrite-drafts.ts",
-    "apply:24h": "tsx --env-file=.env.local scripts/apply-24h-rule.ts"
+    "apply:24h": "tsx --env-file=.env.local scripts/apply-24h-rule.ts",
+    "fix:greetings": "tsx --env-file=.env.local scripts/fix-greetings.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

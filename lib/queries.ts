@@ -1,4 +1,3 @@
-import { loadRubric } from "./config";
 import { hunterAccount } from "./contacts";
 import { keywordMatcher } from "./filter";
 import { lockState } from "./lock";
@@ -80,7 +79,8 @@ async function olderStartups(ids: number[]): Promise<Set<number>> {
   const old = new Set<number>();
   if (!ids.length) return old;
   const db = serverDb();
-  const hours = (await loadRubric(db)).lookbackHours;
+  const { data: setting } = await db.from("rubric_settings").select("value").eq("key", "lookback_hours").maybeSingle();
+  const hours = typeof setting?.value === "number" ? setting.value : null;
   if (hours == null) return old;
   const first = new Map<number, number>();
   for (let i = 0; i < ids.length; i += 100) {
@@ -253,7 +253,8 @@ export async function sourcesData(f: { source?: string; outcome?: string }) {
       name: fd.name as string,
       status,
       read: mine.filter((a: Row) => a.status === "processed").length,
-      passed: mine.filter((a: Row) => match(String(a.title ?? ""))).length,
+      // counted among the articles that were read, so it can never exceed "Articles read"
+      passed: mine.filter((a: Row) => a.status === "processed" && match(String(a.title ?? ""))).length,
       delay: median(delays),
     };
   });

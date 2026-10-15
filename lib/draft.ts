@@ -59,6 +59,31 @@ export function validateDraft(
   return [...new Set(errs)];
 }
 
+/** Shared mailboxes: the founder named in the article is a fair person to greet there. */
+const SHARED_MAILBOX = /^(info|hello|hi|hey|contact|contactus|support|care|help|sales|team|founders?|connect|admin|office|mail|enquiries|enquiry|business|partnerships?|media|press|careers|hr|marketing)$/;
+
+const firstName = (n: string) => n.trim().split(/\s+/)[0]!.toLowerCase().replace(/[^a-z]/g, "");
+
+/**
+ * The greeting must match the person in the To field. A named contact is greeted by their first name; an address with no
+ * name is greeted by a first name only when the address itself starts with it (krish@ -> Krish), else "Hi there,".
+ * A shared mailbox (info@, support@) keeps the model's greeting.
+ * With no contact at all the model's choice (a founder from the article) stands.
+ */
+export function fixGreeting(body: string, contact: Contact | null | undefined): string {
+  if (!contact) return body;
+  const m = body.match(/^\s*Hi ([^,\n]*),/i);
+  if (!m) return body;
+  const greeted = firstName(m[1]!);
+  const local = contact.email.split("@")[0]!.toLowerCase().replace(/[^a-z]/g, "");
+  if (!contact.name && SHARED_MAILBOX.test(local)) return body;
+  let name: string | null = null;
+  if (contact.name && firstName(contact.name)) name = contact.name.trim().split(/\s+/)[0]!;
+  else if (greeted.length >= 3 && (local.startsWith(greeted.slice(0, 3)) || greeted.startsWith(local.slice(0, 3)))) name = m[1]!.trim();
+  const hello = name ? `Hi ${name},` : "Hi there,";
+  return body.replace(/^\s*Hi [^,\n]*,/i, hello);
+}
+
 export interface DraftContext {
   startup: { name: string; sector: string | null; location: string | null; stage: string | null; amountText: string | null; investors: string[]; founders: { name: string; background: string | null }[]; description: string | null };
   articleText: string;
@@ -78,7 +103,7 @@ export function buildDraftPrompt(c: DraftContext, problems: string[] = []): { sy
     "Write it like a thoughtful person, in this shape: \"Hi <first name>,\" then a short paragraph congratulating them with the specifics (round size, lead investors) taken from the facts, then one short paragraph on one specific thing about their product or work that stood out, then one sentence on who the accelerator is for, then one clear ask, then \"Best regards,\" and the sender name on the next line.",
     "Hard rules: the body is at most 150 words and plain text with short paragraphs. No bullet points.",
     "NEVER use square brackets, placeholders, template markers, or dashes as punctuation (no em dash, en dash or \"--\"). Use commas and full stops. Never leave a blank to be filled in.",
-    "Greet the one person in CONTACTS by their first name when a name is given. If no name is given, use a founder name from the facts, else \"Hi there,\".",
+    "Greet the one person in CONTACTS by their first name when a name is given. If no name is given, greet \"Hi there,\" (the founder named in the article may not be the person at that address).",
     "Never promise, offer or imply funding or investment. Never mention a 30 or 60 day window, or any deadline pressure. Do not use hype.",
     "Sign off with the sender name given below. Refer to the accelerator by its name if one is given, otherwise say \"our accelerator\". If a program description is given, use it in one sentence; if it is empty, say nothing about the program beyond who the accelerator is for (use the THESIS line). Use the call to action below as the one ask, in your own natural words if needed.",
     "chosen_contact: pick exactly ONE email from the CONTACTS list that best suits a first note to a founder, or null if the list is empty. Never write any other email address.",
@@ -132,7 +157,7 @@ export async function writeDraft(
     if (!problems.length) {
       return {
         subject: out.subject.trim(),
-        body: out.body.trim(),
+        body: fixGreeting(out.body.trim(), c.contacts.find((x) => x.email === out.chosenContact) ?? c.contacts[0]),
         chosenContact: out.chosenContact,
         inferredPoints: (out.inferredPoints as any[]).map((p) => ({ kind: p.kind, text: String(p.text) })),
       };
